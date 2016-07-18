@@ -120,6 +120,8 @@ SOURCES_C += $(EMU)/machdep/support.c \
 				 $(EMU)/osdep/retromenu.c \
 				 $(EMU)/threaddep/thread.c
 
+SOURCES_C +=  $(EMU)/caps/caps.c
+
 SOURCES_C += $(GUI)/dialog.c\
 				 $(GUI)/paths.c \
 				 $(GUI)/file.c \

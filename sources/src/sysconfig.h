@@ -20,7 +20,7 @@
 /* #undef HAVE_AVX2 */
 
 /* Define to 1 if you have the <caps/capsimage.h> header file. */
-/* #undef HAVE_CAPS_CAPSIMAGE_H */
+#define HAVE_CAPS_CAPSIMAGE_H 1
 
 /* Define to 1 if you have the <curses.h> header file. */
 //#define HAVE_CURSES_H 1
