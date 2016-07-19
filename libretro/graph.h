@@ -1,8 +1,6 @@
 #ifndef GRAPH_H
 #define GRAPH_H 1
 
-#define VIRTUAL_WIDTH 640
-
 typedef struct
 {
 	int x, y;

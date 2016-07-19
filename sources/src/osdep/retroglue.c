@@ -19,6 +19,8 @@
 #include "inputdevice.h"
 
 #include "libretro-glue.h"
+#include "audio.h"
+#include "drawing.h"
 
 #define PIX_BYTES 2
 
@@ -74,6 +76,23 @@ int target_parse_option (struct uae_prefs *p, const char *option, const char *va
 
 void target_default_options (struct uae_prefs *p, int type)
 {
+  _tcscpy (p->romfile, _T("/data/hdd/kick.rom")); // Hardcode full path to rom
+//  _tcscpy (p->floppyslots[0].df, _T("/data/hdd/Rick Dangerous (Europe).ipf"));
+  p->start_gui = 0;
+  p->floppy_speed = 100;
+  p->leds_on_screen = 1;
+
+  // _T("none"), _T("interrupts"), _T("normal"), _T("exact")
+  p->produce_sound = 3;
+  p->sound_freq = 22050;
+  p->sound_stereo = SND_STEREO;
+  p->sound_interpol = 0;
+
+  p->ntscmode = 0;
+
+  p->gfx_framerate = 1;
+  p->gfx_xcenter = 1;
+  p->gfx_ycenter = 1;
 }
 
 
@@ -244,45 +263,28 @@ void retro_unlockscr(struct vidbuf_description *gfxinfo) {
 
 
 int graphics_init(void) {
+    retrow += 7;
+    retrow &= ~7;
 
-	if (pixbuf != NULL) {
-		return 1;
-	}
+	currprefs.gfx_resolution = rres;
 	currprefs.gfx_size_win.width=retrow;
+	currprefs.gfx_size_win.height=retroh;
 
 #ifdef ENABLE_LOG_SCREEN
-	currprefs.gfx_height = 256;
 	currprefs.gfx_linedbl = 0;	//disable line doubling
-#else
-	currprefs.gfx_size_win.height= retroh;
-#endif	
-	opt_scrw = currprefs.gfx_size_win.width;
-	opt_scrh = currprefs.gfx_size_win.height;
-
-	if (currprefs.gfx_size_win.width>= 640) {
-	//currprefs.gfx_lores = 0;
-	} else {
-	//	currprefs.gfx_lores = 1;
-	}
-	//vsync_enabled = currprefs.gfx_vsync;
-	LOG_MSG2("screen w=%i", currprefs.gfx_size_win.width);
-	LOG_MSG2("screen h=%i", currprefs.gfx_size_win.height);
-
-#ifdef ENABLE_LOG_SCREEN
-	pixbuf = (unsigned int*) malloc(currprefs.gfx_size_win.width * 576 * PIX_BYTES);
-#else
-	pixbuf = (unsigned short int*) &bmp[0];
 #endif
-	
-	//printf("graphics init  pixbuf=%p color_mode=%d width=%d\n", pixbuf, currprefs.color_mode, currprefs.gfx_width_win);
-	if (pixbuf == NULL) {
-		printf("Error: not enough memory to initialize screen buffer!\n");
-		return -1;
-	}
+
+	opt_scrw = retrow;
+	opt_scrh = retroh;
+
+	pixbuf = (unsigned short int*) &bmp[0];
 	memset(pixbuf, 0x80, currprefs.gfx_size_win.width * currprefs.gfx_size_win.height * PIX_BYTES);
 
-	gfxvidinfo.width_allocated = currprefs.gfx_size_win.width;
-	gfxvidinfo.height_allocated = currprefs.gfx_size_win.height;
+	gfxvidinfo.width_allocated = retrow;
+	gfxvidinfo.height_allocated = retroh;
+	gfxvidinfo.inwidth = AMIGA_WIDTH_MAX << currprefs.gfx_resolution;
+	gfxvidinfo.inwidth2 = gfxvidinfo.inwidth;
+
 	gfxvidinfo.maxblocklines = 1000;
 	gfxvidinfo.pixbytes = PIX_BYTES;
 	gfxvidinfo.rowbytes = gfxvidinfo.width_allocated * gfxvidinfo.pixbytes ;
@@ -298,9 +300,10 @@ int graphics_init(void) {
 	gfxvidinfo.flush_line = retro_flush_line;
 
 	prefs_changed = 1;
-  inputdevice_release_all_keys ();
-    reset_hotkeys ();
- reset_drawing ();
+	inputdevice_release_all_keys ();
+	reset_hotkeys ();
+	drawing_init ();
+
 	return 1;
 }
 

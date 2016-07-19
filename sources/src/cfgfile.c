@@ -4783,11 +4783,6 @@ void default_prefs (struct uae_prefs *p, int type)
 #ifdef NCURSES
 	p->curses_reverse_video = 0;
 #endif
-        machdep_default_options (p);
-	target_default_options (p, type);
-        gfx_default_options (p);
-        audio_default_options (p);
-
 	p->immediate_blits = 0;
 	p->waiting_blits = 0;
 	p->collision_level = 2;
@@ -4979,7 +4974,10 @@ void default_prefs (struct uae_prefs *p, int type)
 	cr->locked = false;
 	_tcscpy (cr->label, _T("NTSC"));
 
-	//target_default_options (p, type);
+	machdep_default_options (p);
+	target_default_options (p, type);
+	gfx_default_options (p);
+	audio_default_options (p);
 
 	zfile_fclose (default_file);
 	default_file = NULL;
@@ -5166,7 +5164,7 @@ static int bip_a3000 (struct uae_prefs *p, int config, int compa, int romcheck)
 {
 	int roms[2];
 
-	if (config == 2)
+	if (config > 1)
 		roms[0] = 61;
 	else if (config == 1)
 		roms[0] = 71;
@@ -5368,7 +5366,7 @@ static int bip_a1200 (struct uae_prefs *p, int config, int compa, int romcheck)
 	roms[2] = 31;
 	roms[3] = -1;
 	p->cs_rtc = 0;
-	if (config == 1) {
+	if (config > 0) {
 		p->fastmem_size = 0x400000;
 		p->cs_rtc = 2;
 	}
@@ -5392,7 +5390,7 @@ static int bip_a600 (struct uae_prefs *p, int config, int compa, int romcheck)
 		p->cs_rtc = 1;
 	if (config == 1)
 		p->chipmem_size = 0x200000;
-	if (config == 2)
+	if (config > 2)
 		p->fastmem_size = 0x400000;
 	p->chipset_mask = CSMASK_ECS_AGNUS | CSMASK_ECS_DENISE;
 	set_68000_compa (p, compa);
@@ -5413,7 +5411,7 @@ static int bip_a500p (struct uae_prefs *p, int config, int compa, int romcheck)
 		p->cs_rtc = 1;
 	if (config == 1)
 		p->chipmem_size = 0x200000;
-	if (config == 2)
+	if (config > 1)
 		p->fastmem_size = 0x400000;
 	p->chipset_mask = CSMASK_ECS_AGNUS | CSMASK_ECS_DENISE;
 	set_68000_compa (p, compa);
@@ -5461,6 +5459,7 @@ static int bip_a500 (struct uae_prefs *p, int config, int compa, int romcheck)
 		p->floppyslots[1].dfxtype = DRV_NONE;
 		break;
 	case 5: // KS 1.2, OCS Agnus, 0.5M Chip + 0.5M Slow
+	default:
 		roms[0] = 5;
 		roms[1] = 4;
 		roms[2] = 3;

@@ -805,10 +805,12 @@ _tcscpy (optionsfile, "/mnt/sdcard/euae");
 _tcscat (optionsfile, _T("/"));
 #endif
 #endif
+
+#ifndef DONT_PARSE_CMDLINE
+
 	parse_cmdline_2 (argc, argv);
 
 	_tcscat (optionsfile, restart_config);
-
 
 	if (argc > 1 && ! target_cfgfile_load (&currprefs, argv[1], 0, default_config)) {
 		write_log (_T("failed to load config '%s'\n"), optionsfile);
@@ -822,6 +824,9 @@ _tcscat (optionsfile, _T("/"));
 
 	parse_cmdline (argc, argv);
 //	fixup_prefs (&currprefs); //fixup after cmdline
+#else
+	_tcscat (optionsfile, restart_config);
+#endif // DONT_PARSE_CMDLINE
 }
 
 void reset_all_systems (void)
@@ -969,6 +974,7 @@ void do_leave_program (void)
 
 #ifdef RETRO
 extern int pauseg,romnotfound;
+extern int rqsmode, rconfig, rcompat;
 #endif
 
 void start_program (void)
@@ -1035,6 +1041,9 @@ static int real_main2 (int argc, TCHAR **argv)
 	config_changed = 1;
 	if (restart_config[0]) {
 		default_prefs (&currprefs, 0);
+#ifdef RETRO
+        built_in_prefs(&currprefs, rqsmode, rconfig, rcompat, 0);
+#endif // RETRO
 		fixup_prefs (&currprefs);
 	}
 
@@ -1042,6 +1051,9 @@ static int real_main2 (int argc, TCHAR **argv)
 		write_log (_T("Graphics Setup Failed\n"));
 		exit (1);
 	}
+    else {
+		write_log (_T("Graphics Setup OK\n"));
+    }
 
 	if (restart_config[0])
 		parse_cmdline_and_init_file (argc, argv);
@@ -1051,10 +1063,13 @@ static int real_main2 (int argc, TCHAR **argv)
 //	uae_inithrtimer ();
 
 	if (!machdep_init ()) {
-		write_log (_T("Machine Init Failed.\n"));
+		write_log (_T("Machine Init Failed\n"));
 		restart_program = 0;
 		return -1;
 	}
+    else {
+		write_log (_T("Machine Init OK\n"));
+    }
 
 	if (console_emulation) {
 		consolehook_config (&currprefs);
@@ -1065,6 +1080,9 @@ static int real_main2 (int argc, TCHAR **argv)
 		write_log (_T("Sound driver unavailable: Sound output disabled\n"));
 		currprefs.produce_sound = 0;
 	}
+    else {
+		write_log (_T("Sound Init OK\n"));
+    }
 	inputdevice_init ();
 
 	changed_prefs = currprefs;

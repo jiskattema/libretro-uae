@@ -4,8 +4,8 @@
 cothread_t mainThread;
 cothread_t emuThread;
 
-int retrow=640; 
-int retroh=480;
+int retrow=380; 
+int retroh=256;
 int CROP_WIDTH;
 int CROP_HEIGHT;
 int VIRTUAL_WIDTH;
@@ -24,6 +24,10 @@ extern int snd_sampler;
 extern short signed int SNDBUF[1024*2];
 extern char RPATH[512];
 int ledtype;
+int rqsmode;
+int rconfig;
+int rcompat;
+int rres;
 
 extern void update_input(void);
 
@@ -54,47 +58,24 @@ void retro_set_environment(retro_environment_t cb)
    environ_cb = cb;
 
    struct retro_variable variables[] = {
-      { "resolution","Internal resolution; 640x400|640x480|720x480|800x600|1024x768", },
       { "analog","Use Analog; OFF|ON", },
       { "leds","Leds; Standard|Simplified|None", },
+      { "rres","Resolution; Low|High|SuperHigh", },
+      { "rqsmode","Machine; A500|A500+|A600|A1000|A1200|A3000|A4000|CD32|CDTV|ARCADIA", },
+      { "rconfig","Configuration; 0|1|2|3|4|5", },
+      { "rcompat","Compatibility; Exact|High|Low|Fast", },
       { NULL, NULL },
+
    };
-/*
-   bool no_rom = true;
-   cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &no_rom);
-*/
-   
+
+   // bool no_rom = true;
+   // cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &no_rom);
    cb(RETRO_ENVIRONMENT_SET_VARIABLES, variables);
 }
 
 static void update_variables(void)
 {
    struct retro_variable var = {0};
-
-   var.key = "resolution";
-   var.value = NULL;
-
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
-      char *pch;
-      char str[100];
-      snprintf(str, sizeof(str), var.value);
-
-      pch = strtok(str, "x");
-      if (pch)
-         retrow = strtoul(pch, NULL, 0);
-      pch = strtok(NULL, "x");
-      if (pch)
-         retroh = strtoul(pch, NULL, 0);
-
-      fprintf(stderr, "[libretro-test]: Got size: %u x %u.\n", retrow, retroh);
-
-      CROP_WIDTH =retrow;
-      CROP_HEIGHT= (retroh-80);
-      VIRTUAL_WIDTH = retrow;
-      memset(bmp, 0, sizeof(bmp));
-      Screen_SetFullUpdate();
-   }
 
    var.key = "analog";
    var.value = NULL;
@@ -106,7 +87,6 @@ static void update_variables(void)
         opt_analog = false;
       if (strcmp(var.value, "ON") == 0)
         opt_analog = true;
-      ledtype = 1;
 
       fprintf(stderr, "[libretro-test]: Analog: %s.\n",opt_analog?"ON":"OFF");
    }
@@ -117,21 +97,71 @@ static void update_variables(void)
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
    {
       fprintf(stderr, "value: %s\n", var.value);
-      if (strcmp(var.value, "Standard") == 0)
-      {
-        ledtype = 0;        
-        fprintf(stderr, "[libretro-test]: Leds: Standard\n");
+      if (strcmp(var.value, "Standard") == 0)   ledtype = 0;
+      if (strcmp(var.value, "Simplified") == 0) ledtype = 1;
+      if (strcmp(var.value, "None") == 0)       ledtype = 2;
+   }
+   
+   var.key = "rqsmode";
+   var.value = NULL;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      if      (strcmp("A500"   , var.value) == 0) {rqsmode = 0;}
+      else if (strcmp("A500+"  , var.value) == 0) {rqsmode = 1;}
+      else if (strcmp("A600"   , var.value) == 0) {rqsmode = 2;}
+      else if (strcmp("A1000"  , var.value) == 0) {rqsmode = 3;}
+      else if (strcmp("A1200"  , var.value) == 0) {rqsmode = 4;}
+      else if (strcmp("A3000"  , var.value) == 0) {rqsmode = 5;}
+      else if (strcmp("A4000"  , var.value) == 0) {rqsmode = 6;}
+      else if (strcmp("CD32"   , var.value) == 0) {rqsmode = 8;}
+      else if (strcmp("CDTV"   , var.value) == 0) {rqsmode = 9;}
+      else if (strcmp("ARCADIA", var.value) == 0) {rqsmode = 10;}
+      
+      fprintf(stderr, "value: %s %i\n", var.value, rqsmode);
+   }
+
+   var.key = "rconfig";
+   var.value = NULL;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      rconfig = atoi (var.value);
+      fprintf(stderr, "value: %s %i\n", var.value, rconfig);
+   }
+
+   var.key = "rcompat";
+   var.value = NULL;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      if      (strcmp(var.value, "Exact") == 0) {rcompat = 0;}
+      else if (strcmp(var.value, "High") == 0)  {rcompat = 1;}
+      else if (strcmp(var.value, "Low") == 0)   {rcompat = 2;}
+      else if (strcmp(var.value, "Fast") == 0)  {rcompat = 3;}
+   }
+
+   var.key = "rres";
+   var.value = NULL;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      if      (strcmp(var.value, "Low") == 0)       {rres = 0;}
+      else if (strcmp(var.value, "High") == 0)      {rres = 1;}
+      else if (strcmp(var.value, "SuperHigh") == 0) {rres = 2;}
+
+      retrow = (752 / 2) << rres;
+      if (rres == 0) {
+          // retrow = 258 + 136;
+          retroh = 400 + 36;
+      } else if (rres == 1) {
+          // retrow = 640 + 58;
+          retroh = 480 + 36;
+      } else if (rres == 2) {
+          // retrow = 640 + 58;
+          retroh = 480 + 36;
       }
-      if (strcmp(var.value, "Simplified") == 0)
-      {
-        ledtype = 1;  
-        fprintf(stderr, "[libretro-test]: Leds: Simplified\n");
-      }
-      if (strcmp(var.value, "None") == 0)
-      {
-        ledtype = 2;  
-        fprintf(stderr, "[libretro-test]: Leds: None\n");
-      }
+      graphics_init();
    }
 }
 
@@ -211,7 +241,7 @@ void retro_get_system_info(struct retro_system_info *info)
 {
    memset(info, 0, sizeof(*info));
    info->library_name     = "PUAE";
-   info->library_version  = "v2.6.1";
+   info->library_version  = "v2.6.1mod";
    info->need_fullpath    = true;
    info->block_extract    = false;	
    info->valid_extensions = "adf|dms|fdi|ipf|zip|uae";
@@ -246,7 +276,9 @@ void retro_shutdown_uae(void)
    environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
 }
 
-void retro_reset(void){}
+void retro_reset(void){
+   uae_reset(1,1);
+}
 
 void retro_audio_cb( short l, short r)
 {
@@ -325,37 +357,9 @@ bool retro_load_game(const struct retro_game_info *info)
    {
       const char *full_path = (const char*)info->path;
       strcpy(RPATH,full_path);
-
-      // checking parsed file for custom resolution
-      FILE * configfile;
-
-      int w = 0;
-      int h = 0;
-
-      char filebuf[1000];
-      char setting[20];
-      char value[20];
-      if(configfile = fopen ( RPATH, "r"))
-      {
-         while(fgets(filebuf,1000,configfile))
-         {
-            sscanf(filebuf,"gfx_width = %d",&w);
-            sscanf(filebuf,"gfx_height = %d",&h);
-         }
-         fclose(configfile);
-      }
-
-      if (w && h)
-      {
-         retrow = w;
-         retroh = h;
-         CROP_WIDTH = retrow;
-         CROP_HEIGHT = (retroh-80);
-         VIRTUAL_WIDTH = retrow;
-         memset(bmp, 0, sizeof(bmp));
-         Screen_SetFullUpdate();
-      }
+fprintf("FIXME load game '%s'\n", RPATH);
    }
+  
    return true;
 }
 

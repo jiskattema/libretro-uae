@@ -4,6 +4,7 @@
 #include <math.h>
 
 #include "graph.h"
+#include "libretro-glue.h"
 
 extern unsigned char  msx[];
 

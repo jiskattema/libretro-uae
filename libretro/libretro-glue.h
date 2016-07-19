@@ -29,6 +29,11 @@ extern int CROP_WIDTH;
 extern int CROP_HEIGHT;
 extern int VIRTUAL_WIDTH ;
 
+extern int rqsmode;
+extern int rconfig;
+extern int rcompat;
+extern int rres;
+
 #define NPLGN 10
 #define NLIGN 5
 #define NLETT 5
