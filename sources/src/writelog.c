@@ -17,6 +17,7 @@
 #include "uae_types.h"
 #include "writelog.h"
 
+#if 0
 void write_log (const char *fmt, ...)
 {
     va_list ap;
@@ -39,6 +40,11 @@ void write_log (const char *fmt, ...)
     }
 #endif
 }
+#else
+void write_log (const char *fmt, ...)
+{
+}
+#endif
 
 #ifdef JIT
 void jit_abort (const char *fmt, ...)

@@ -1,5 +1,14 @@
+#include <stdio.h>
 #include "libretro.h"
 #include "libretro-glue.h"
+
+// for struct uae_prefs (options.h) and serialization (savestate.h)
+#include "sysconfig.h"
+#include "sysdeps.h"
+#include "options.h"
+#include "savestate.h"
+
+const char *fname = "/dev/shm/puae.asf";
 
 cothread_t mainThread;
 cothread_t emuThread;
@@ -35,6 +44,8 @@ static retro_video_refresh_t video_cb;
 static retro_audio_sample_t audio_cb;
 static retro_audio_sample_batch_t audio_batch_cb;
 static retro_environment_t environ_cb;
+
+extern struct uae_prefs currprefs;
 
 static struct retro_input_descriptor input_descriptors[] = {
    { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "Up" },
@@ -357,7 +368,7 @@ bool retro_load_game(const struct retro_game_info *info)
    {
       const char *full_path = (const char*)info->path;
       strcpy(RPATH,full_path);
-fprintf("FIXME load game '%s'\n", RPATH);
+      fprintf(stderr, "FIXME load game '%s'\n", RPATH);
    }
   
    return true;
@@ -383,16 +394,51 @@ bool retro_load_game_special(unsigned type, const struct retro_game_info *info, 
 
 size_t retro_serialize_size(void)
 {
-   return 0;
+   size_t size = 0;   
+
+   // add size system memory
+   size += currprefs.z3fastmem_size;
+   size += currprefs.rtgmem_size;
+   size += currprefs.fastmem_size;
+   size += currprefs.bogomem_size;
+   size += currprefs.chipmem_size;
+
+   // add some extra for other state
+   size += 0x100000; // FIME Way too much
+
+   // fprintf(stderr, "Size retro_serialize_size: %i\n", size);
+   return size;
 }
 
 bool retro_serialize(void *data_, size_t size)
 {
-   return false;
+   // have UAE write to file
+   save_state (fname, "e-uae");
+
+   // copy file to memoory for libretro
+   FILE *fp = fopen(fname, "rb");
+   if (fp != NULL) {
+      fread(data_, sizeof(char), size, fp);
+      fclose(fp);
+      return true;
+   }
+   return false; 
 }
 
 bool retro_unserialize(const void *data_, size_t size)
 {
+   // copy to file for UAE
+   FILE *fp = fopen(fname, "wb");
+   if (fp != NULL) {
+      fwrite(data_, sizeof(char), size, fp);
+      fclose(fp);
+      strcpy(savestate_fname,fname);
+      savestate_state = STATE_DORESTORE;
+      return true;
+   } else {
+      fprintf(stderr, "Cannot open temprorary file '%s' for writing state file\n", fname);
+   }
+    
    return false;
 }
 
