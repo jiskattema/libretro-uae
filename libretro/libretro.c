@@ -47,15 +47,174 @@ static retro_environment_t environ_cb;
 
 extern struct uae_prefs currprefs;
 
+/* Callbacks for RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE.
+ * Should be set for implementations which can swap out multiple disk 
+ * images in runtime.
+ *
+ * If the implementation can do this automatically, it should strive to do so.
+ * However, there are cases where the user must manually do so.
+ *
+ * To swap a disk image:
+ * set_eject_state(true)    eject the disk image
+ * set_image_index(index)   set the disk index
+ * set_eject_state(false)   insert the disk again 
+ */
+int rnumimages = 0;
+int rimageidx = 0;
+bool rejectstate = true;
+
+#define RETRO_MAX_IMAGES 10
+#define RETRO_LINE_LENGTH 255
+char retro_image[RETRO_MAX_IMAGES][RETRO_LINE_LENGTH+1];
+char retro_uae_file[RETRO_LINE_LENGTH+1];
+
+bool retro_set_eject_state(bool ejected) {
+    fprintf(stderr, "=============\n");
+    fprintf(stderr, "Number of disks: %d\n", rnumimages);
+    fprintf(stderr, "Active disk: %d\n", rimageidx);
+    fprintf(stderr, "- - - - - - -\n");
+    int i;
+    for (i=0; i<rnumimages;i++){
+    fprintf(stderr, "disk %d: %s\n", i, retro_image[i]);
+    }
+    fprintf(stderr, "=============\n");
+
+    /* If ejected is true, "ejects" the virtual disk tray.
+     * When ejected, the disk image index can be set.
+     */
+    if (ejected)
+    {
+        if (! rejectstate)
+        {
+            disk_eject(0);
+        }
+        rejectstate = true;
+    }
+    else
+    {
+        // add current disk image as DF0: for P-UAE
+        if (rimageidx < rnumimages)
+        {
+            disk_insert (0, retro_image[rimageidx], false);
+        }
+        else 
+        {
+           disk_eject(0);
+        }
+        rejectstate = false; // disk inserted
+    }
+    return true;
+}
+
+bool retro_get_eject_state() {
+    /* Gets current eject state. The initial state is 'not ejected'. */
+    return rejectstate;
+}
+
+unsigned retro_get_image_index() {
+    /* Gets current disk index. First disk is index 0.
+     * If return value is >= get_num_images(), no disk is currently inserted.
+     */
+    return rimageidx;
+}
+
+bool retro_set_image_index(unsigned index) {
+    /* Sets image index. Can only be called when disk is ejected.
+     * The implementation supports setting "no disk" by using an 
+     * index >= get_num_images().
+     */
+    if (rejectstate == false)
+    {
+        return false;
+    }
+    rimageidx = index;
+    return true;
+}
+
+unsigned retro_get_num_images() {
+    /* Gets total number of images which are available to use. */
+    return rnumimages;
+}
+
+
+//struct retro_game_info
+//{
+//   const char *path;       // Path to game, UTF-8 encoded. Usually used as a reference.
+//                           // May be NULL if rom was loaded from stdin or similar.
+//                           // retro_system_info::need_fullpath guaranteed that this path is valid.
+//   const void *data;       // Memory buffer of loaded game. Will be NULL if need_fullpath was set.
+//   size_t      size;       // Size of memory buffer.
+//   const char *meta;       // String of implementation specific meta-data.
+//};
+
+bool retro_replace_image_index(unsigned index, const struct retro_game_info *info) {
+    /* Replaces the disk image associated with index.
+     * Arguments to pass in info have same requirements as retro_load_game().
+     * Virtual disk tray must be ejected when calling this.
+     *
+     * Replacing a disk image with info = NULL will remove the disk image 
+     * from the internal list.
+     * As a result, calls to get_image_index() can change.
+     *
+     * E.g. replace_image_index(1, NULL), and previous get_image_index() 
+     * returned 4 before.
+     * Index 1 will be removed, and the new index is 3.
+     */
+    if (rejectstate == false)
+    {
+        return false;
+    }
+    if (! info)
+    {
+        // remove image, move other images down to fill the gap
+        int i;
+        for (i = index; i < rnumimages - 1; i++ ) {
+            strcpy(retro_image[i], retro_image[i+1]);
+        }
+
+        // reduce image count
+        rnumimages--;
+    } else {
+        strncpy(retro_image[index], info->path, RETRO_LINE_LENGTH);
+        retro_image[index][RETRO_LINE_LENGTH] = '\0';
+    }
+
+    return true;
+}
+
+bool retro_add_image_index() {
+    /* Adds a new valid index (get_num_images()) to the internal disk list.
+     * This will increment subsequent return values from get_num_images() by 1.
+     * This image index cannot be used until a disk image has been set 
+     * with replace_image_index. */
+    if (rnumimages == RETRO_MAX_IMAGES) {
+        fprintf(stderr, "maximum number of images (%d) reached\n", RETRO_MAX_IMAGES);
+        return false;
+    }
+
+    rnumimages++;
+    return true;
+}
+
+static struct retro_disk_control_callback disk_control_cb = {  
+   retro_set_eject_state,
+   retro_get_eject_state,
+
+   retro_get_image_index,
+   retro_set_image_index,
+   retro_get_num_images,
+
+   retro_replace_image_index,
+   retro_add_image_index
+};
+
 static struct retro_input_descriptor input_descriptors[] = {
    { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "Up" },
    { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN, "Down" },
    { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "Left" },
    { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "Right" },
    { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Fire" },
-   { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "Enter GUI" },
    { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Mouse mode toggle" },
-   { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START, "Keyboard overlay" },
    { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2, "Toggle m/k status" },
    { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L, "Joystick number" },
    { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R, "Mouse speed" },
@@ -76,12 +235,12 @@ void retro_set_environment(retro_environment_t cb)
       { "rconfig","Configuration; 0|1|2|3|4|5", },
       { "rcompat","Compatibility; Exact|High|Low|Fast", },
       { NULL, NULL },
-
    };
 
    // bool no_rom = true;
    // cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &no_rom);
    cb(RETRO_ENVIRONMENT_SET_VARIABLES, variables);
+   cb(RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE, &disk_control_cb);
 }
 
 static void update_variables(void)
@@ -93,7 +252,6 @@ static void update_variables(void)
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
    {
-      fprintf(stderr, "value: %s\n", var.value);
       if (strcmp(var.value, "OFF") == 0)
         opt_analog = false;
       if (strcmp(var.value, "ON") == 0)
@@ -107,10 +265,11 @@ static void update_variables(void)
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
    {
-      fprintf(stderr, "value: %s\n", var.value);
       if (strcmp(var.value, "Standard") == 0)   ledtype = 0;
       if (strcmp(var.value, "Simplified") == 0) ledtype = 1;
       if (strcmp(var.value, "None") == 0)       ledtype = 2;
+
+      fprintf(stderr, "value: %s\n", var.value);
    }
    
    var.key = "rqsmode";
@@ -176,27 +335,75 @@ static void update_variables(void)
    }
 }
 
+#define mystr(s) #s
+#define INIT_VOID_0(x)   {x( ); fprintf(stderr, "%25s  %5s\n", mystr(x),        "OK"          );}
+#define INIT_VOID_1(x,y) {x(y); fprintf(stderr, "%25s  %5s\n", mystr(x),        "OK"          );}
+#define INIT_BOOL_0(x)   {      fprintf(stderr, "%25s  %5s\n", mystr(x), x()  ? "OK" : "ERROR");}
+#define INIT_BOOL_1(x,y) {      fprintf(stderr, "%25s  %5s\n", mystr(x), x(y) ? "OK" : "ERROR");}
+void my_main()
+{
+    INIT_VOID_0(keyboard_settrans);
+
+    default_prefs (&currprefs, 0);
+    built_in_prefs(&currprefs, rqsmode, rconfig, rcompat, 0);
+    
+    // insert images, if present
+    // The disk image interface only controls drive 0, but put disks in other drives too
+    // It probably wont matter if the same disk is in multiple drives
+    if (rnumimages) {
+        if(rnumimages > 0) disk_insert (0, retro_image[0], false);
+        if(rnumimages > 1) disk_insert (1, retro_image[1], false);
+        if(rnumimages > 2) disk_insert (2, retro_image[2], false);
+        if(rnumimages > 3) disk_insert (3, retro_image[3], false);
+    }
+
+    // load cfg file, if present
+    if (retro_uae_file[0]) {
+        target_cfgfile_load (&currprefs, retro_uae_file, 0, 1);
+    }
+
+    fixup_prefs (&currprefs);
+    changed_prefs = currprefs;
+
+    INIT_BOOL_0(graphics_setup);
+    INIT_BOOL_0(machdep_init);
+    INIT_BOOL_0(setup_sound);
+    INIT_VOID_0(inputdevice_init);
+    INIT_VOID_0(savestate_init);
+    INIT_VOID_0(keybuf_init);
+    INIT_VOID_1(memory_hardreset, 2);
+    INIT_VOID_0(memory_reset);
+    INIT_VOID_0(native2amiga_install);
+    INIT_BOOL_0(custom_init);
+    INIT_VOID_0(DISK_init);
+    INIT_VOID_0(reset_frame_rate_hack);
+    INIT_VOID_0(init_m68k);
+    INIT_BOOL_0(graphics_init);
+    INIT_BOOL_0(init_audio);
+#ifdef DEBUGGER
+    INIT_VOID_0(setup_brkhandler);
+#endif
+
+    do_start_program ();
+}
+
 static void retro_wrap_emulator(void)
 {
-   static const char* argv[2];
-   argv[0] = "puae";
-   argv[1] = RPATH;
-   umain(2,argv);
+    my_main();
 
-   pauseg=-1;
+    pauseg=-1;
 
-   environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, 0); 
+    environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, 0); 
 
-   /* We're done here */
-   co_switch(mainThread);
+    /* We're done here */
+    co_switch(mainThread);
 
-   /* Dead emulator, 
+    /* Dead emulator, 
     * but libco says not to return. */
-   while(true)
-   {
-      LOGI("Running a dead emulator.");
+    while(true)
+    {
       co_switch(mainThread);
-   }
+    }
 }
 
 void retro_init(void)
@@ -229,8 +436,8 @@ void retro_init(void)
 }
 
 void retro_deinit(void)
-{	
-   UnInitOSGLU();	
+{
+   UnInitOSGLU();
 
    if(emuThread)
       co_delete(emuThread);
@@ -254,7 +461,7 @@ void retro_get_system_info(struct retro_system_info *info)
    info->library_name     = "PUAE";
    info->library_version  = "v2.6.1mod";
    info->need_fullpath    = true;
-   info->block_extract    = false;	
+   info->block_extract    = true;
    info->valid_extensions = "adf|dms|fdi|ipf|zip|uae";
 }
 
@@ -312,26 +519,6 @@ int restore_bkg(void)
    memcpy(bmp,savebmp,sizeof(bmp));
 }
 
-void enter_gui0(void)
-{
-   save_bkg();
-
-   Dialog_DoProperty();
-   pauseg=0;
-
-   restore_bkg();
-}
-
-void pause_select(void)
-{
-   if(pauseg==1 && firstps==0)
-   {
-      firstps=1;
-      enter_gui0();
-      firstps=0;
-   }
-}
-
 void retro_run(void)
 {
    int x;
@@ -348,30 +535,57 @@ void retro_run(void)
          firstpass=0;
          goto sortie;
       }
-      update_input();	
+      update_input();
    }
 
 sortie:
 
-   video_cb(bmp,retrow,retroh , retrow << 1);
+   video_cb(bmp, retrow, retroh, retrow << 1);
 
    co_switch(emuThread);
 }
 
+bool retro_add_and_replace_image(const struct retro_game_info *info) {
+    // get next available index
+    int idx = retro_get_num_images ();
+
+    // request index
+    if (! retro_add_image_index())
+    {
+        fprintf(stderr, "Cannot create image index %d\n", idx);
+        return false;
+    }
+
+    // replace image
+    if (! retro_replace_image_index(idx, info))
+    {
+        fprintf(stderr, "Cannot replace image index %d with %s\n", idx, *info->path);
+    }
+    return true;
+}
+
 bool retro_load_game(const struct retro_game_info *info)
 {
-   environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_descriptors);
+    retro_uae_file[0] = '\0';
+    const char *suffix = info->path + strlen(info->path) - 3;
 
-   RPATH[0] = "\0";
+    environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_descriptors);
 
-   if (*info->path)
-   {
-      const char *full_path = (const char*)info->path;
-      strcpy(RPATH,full_path);
-      fprintf(stderr, "FIXME load game '%s'\n", RPATH);
-   }
-  
-   return true;
+    if (strlen(info->path) < 5 || strncasecmp(suffix, "uae", 3) == 0)
+    {
+        strncpy(retro_uae_file, info->path, RETRO_LINE_LENGTH);
+        retro_uae_file[RETRO_LINE_LENGTH] = '\0';
+    }
+    else if (strncasecmp(suffix, "zip", 3) == 0)
+    {
+        stripped_miniunz(info->path);
+    }
+    else
+    {
+        return retro_add_and_replace_image(info);
+    }
+
+    return true;
 }
 
 void retro_unload_game(void)
@@ -406,7 +620,6 @@ size_t retro_serialize_size(void)
    // add some extra for other state
    size += 0x100000; // FIME Way too much
 
-   // fprintf(stderr, "Size retro_serialize_size: %i\n", size);
    return size;
 }
 
