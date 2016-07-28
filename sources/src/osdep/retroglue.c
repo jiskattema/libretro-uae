@@ -76,8 +76,6 @@ int target_parse_option (struct uae_prefs *p, const char *option, const char *va
 
 void target_default_options (struct uae_prefs *p, int type)
 {
-  _tcscpy (p->romfile, _T("/data/hdd/kick.rom")); // Hardcode full path to rom
-//  _tcscpy (p->floppyslots[0].df, _T("/data/hdd/Rick Dangerous (Europe).ipf"));
   p->start_gui = 0;
   p->floppy_speed = 100;
   p->leds_on_screen = 1;

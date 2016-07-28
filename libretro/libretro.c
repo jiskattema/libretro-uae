@@ -336,6 +336,7 @@ static void update_variables(void)
 }
 
 #define mystr(s) #s
+#define INIT_MSSG_1(x,y) {      fprintf(stderr, "%25s  %s\n", x, y);                            }
 #define INIT_VOID_0(x)   {x( ); fprintf(stderr, "%25s  %5s\n", mystr(x),        "OK"          );}
 #define INIT_VOID_1(x,y) {x(y); fprintf(stderr, "%25s  %5s\n", mystr(x),        "OK"          );}
 #define INIT_BOOL_0(x)   {      fprintf(stderr, "%25s  %5s\n", mystr(x), x()  ? "OK" : "ERROR");}
@@ -345,8 +346,11 @@ void my_main()
     INIT_VOID_0(keyboard_settrans);
 
     default_prefs (&currprefs, 0);
-    built_in_prefs(&currprefs, rqsmode, rconfig, rcompat, 0);
-    
+    INIT_MSSG_1("Default romfile", currprefs.romfile);
+
+    built_in_prefs(&currprefs, rqsmode, rconfig, rcompat, 1);
+    INIT_MSSG_1("Matching romfile", currprefs.romfile);
+
     // insert images, if present
     // The disk image interface only controls drive 0, but put disks in other drives too
     // It probably wont matter if the same disk is in multiple drives
@@ -433,6 +437,8 @@ void retro_init(void)
       mainThread = co_active();
       emuThread = co_create(65536 * sizeof(void*), retro_wrap_emulator);
    }
+
+   check_roms();
 }
 
 void retro_deinit(void)

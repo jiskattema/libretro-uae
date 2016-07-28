@@ -4855,7 +4855,7 @@ void default_prefs (struct uae_prefs *p, int type)
 	_tcscpy (p->floppyslots[3].df, _T("df3.adf"));
 
 	configure_rom (p, roms, 0);
-	_tcscpy (p->romfile, _T("kick.rom"));
+    // _tcscpy (p->romfile, _T("kick.rom"));
 	_tcscpy (p->romextfile, _T(""));
 	_tcscpy (p->romextfile2, _T(""));
 	p->romextfile2addr = 0;

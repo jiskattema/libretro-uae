@@ -153,6 +153,7 @@ SOURCES_C += $(LIBRETRO)/libretro.c \
 				 $(LIBRETRO)/fontmsx.c \
 				 $(LIBRETRO)/miniunz.c \
 				 $(LIBRETRO)/unzip.c \
-				 $(LIBRETRO)/ioapi.c
+				 $(LIBRETRO)/ioapi.c \
+				 $(LIBRETRO)/check_roms.c
 
 
