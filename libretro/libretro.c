@@ -27,7 +27,6 @@ static int firstps=0;
 
 extern unsigned short int  bmp[1024*1024];
 extern unsigned short int  savebmp[1024*1024];
-extern int pauseg;
 extern int SND;
 extern int SHIFTON;
 extern int snd_sampler;
@@ -423,8 +422,6 @@ static void retro_wrap_emulator(void)
 {
     my_main();
 
-    pauseg=-1;
-
     environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, 0); 
 
     /* We're done here */
@@ -569,20 +566,16 @@ void retro_run(void)
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
       update_variables();
 
-   if(pauseg==0)
+   if(firstpass)
    {
-      if(firstpass)
-      {
-         firstpass=0;
-         goto sortie;
-      }
-      update_input();
+     firstpass=0;
+     goto sortie;
    }
+   update_input();
 
-sortie:
+   sortie:
 
    video_cb(bmp, retrow, retroh, retrow << 1);
-
    co_switch(emuThread);
 }
 
@@ -633,7 +626,6 @@ bool retro_load_game(const struct retro_game_info *info)
 
 void retro_unload_game(void)
 {
-   pauseg=0;
 }
 
 unsigned retro_get_region(void)

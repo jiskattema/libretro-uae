@@ -44,7 +44,6 @@ int ar[2];//right analog1
 unsigned char MXjoy0; // joy
 int touch=-1; // gui mouse btn
 int fmousex,fmousey; // emu mouse
-int pauseg=0; //enter_gui
 int SND=1; //SOUND ON/OFF
 int NUMjoy=1;
 
@@ -230,7 +229,6 @@ void update_input(void)
 
    if (key_state[RETROK_F11] || input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y))
    {
-      pauseg=1;
       //enter_gui(); //old
    }
 

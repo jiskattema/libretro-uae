@@ -223,7 +223,6 @@ int action_main_menu(int action);
 #define PAD_START 0
 #define RETRO_X 4
 
-extern int pauseg;
 int idle_counter = 0;
 int sav_event=0;
 
@@ -1393,7 +1392,7 @@ void enter_options(void) {
 		}else		
 		if (event == PAD_SQUARE) {
 			if (screenId == MENU_MAIN) {
-				exit = 1;pauseg=0;
+				exit = 1;
 				reset_drawing();
 				first_time=0;
 				uae_resume();resume_sound();
@@ -1408,7 +1407,6 @@ void enter_options(void) {
 		}		
 
 		if(exit!=0){
-			pauseg=0;
 			reset_drawing();
 			first_time=0;
 			uae_resume();resume_sound();

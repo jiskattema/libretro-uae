@@ -24,7 +24,6 @@ const char Dialog_fileid[] = "Hatari dialog.c : " __DATE__ " " __TIME__;
 int MUSTRESET=0;
 int MUSTRESET_CFG=0;
 bool bQuitProgram=false;
-extern int pauseg;
 
 /*-----------------------------------------------------------------------*/
 /**

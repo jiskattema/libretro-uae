@@ -204,14 +204,14 @@ void retro_key_up(int key){
 	
 }
 
-extern int pauseg,SND;
+extern int SND;
 int RLOOP=1;
 
 int retro_renderSound(short* samples, int sampleCount)
 {
    int i; 
 
-   if (sampleCount < 1 || SND!=1 || pauseg==1)
+   if (sampleCount < 1 || SND!=1)
       return 0;
 
    for(i=0;i<sampleCount;i+=2)
@@ -236,8 +236,6 @@ void ScreenUpdate ()
 
 void retro_flush_screen (struct vidbuf_description *gfxinfo, int ystart, int yend)
 {
-	if(pauseg==1)
-      pause_select();
 	co_switch(mainThread);
 }
 
