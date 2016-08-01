@@ -81,16 +81,6 @@ char rcapsdir[RETRO_LINE_LENGTH+1]; // for capsimg.so: retro_system_dir
 
 
 bool retro_set_eject_state(bool ejected) {
-    fprintf(stderr, "=============\n");
-    fprintf(stderr, "Number of disks: %d\n", rnumimages);
-    fprintf(stderr, "Active disk: %d\n", rimageidx);
-    fprintf(stderr, "- - - - - - -\n");
-    int i;
-    for (i=0; i<rnumimages;i++){
-    fprintf(stderr, "disk %d: %s\n", i, retro_image[i]);
-    }
-    fprintf(stderr, "=============\n");
-
     /* If ejected is true, "ejects" the virtual disk tray.
      * When ejected, the disk image index can be set.
      */
@@ -268,8 +258,6 @@ static void update_variables(void)
         opt_analog = false;
       if (strcmp(var.value, "ON") == 0)
         opt_analog = true;
-
-      fprintf(stderr, "[libretro-test]: Analog: %s.\n",opt_analog?"ON":"OFF");
    }
    
    var.key = "leds";
@@ -280,8 +268,6 @@ static void update_variables(void)
       if (strcmp(var.value, "Standard") == 0)   ledtype = 0;
       if (strcmp(var.value, "Simplified") == 0) ledtype = 1;
       if (strcmp(var.value, "None") == 0)       ledtype = 2;
-
-      fprintf(stderr, "value: %s\n", var.value);
    }
    
    var.key = "rqsmode";
@@ -299,8 +285,6 @@ static void update_variables(void)
       else if (strcmp("CD32"   , var.value) == 0) {rqsmode = 8;}
       else if (strcmp("CDTV"   , var.value) == 0) {rqsmode = 9;}
       else if (strcmp("ARCADIA", var.value) == 0) {rqsmode = 10;}
-      
-      fprintf(stderr, "value: %s %i\n", var.value, rqsmode);
    }
 
    var.key = "rconfig";
@@ -309,7 +293,6 @@ static void update_variables(void)
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
    {
       rconfig = atoi (var.value);
-      fprintf(stderr, "value: %s %i\n", var.value, rconfig);
    }
 
    var.key = "rcompat";
@@ -612,12 +595,12 @@ bool retro_load_game(const struct retro_game_info *info)
     }
     else if (strncasecmp(suffix, "zip", 3) == 0)
     {
-        fprintf(stderr, "Extracting %s\n", info->path);
+        // fprintf(stderr, "Extracting %s\n", info->path);
         stripped_miniunz(info->path);
     }
     else
     {
-        fprintf(stderr, "Adding disk image %s\n", info->path);
+        // fprintf(stderr, "Adding disk image %s\n", info->path);
         return retro_add_and_replace_image(info);
     }
 
