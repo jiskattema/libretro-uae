@@ -13,6 +13,7 @@ const char *fname = "/dev/shm/puae.asf";
 cothread_t mainThread;
 cothread_t emuThread;
 
+struct retro_message rmsg; // used in sources/src/caps/caps.c
 int retrow=380; 
 int retroh=256;
 int CROP_WIDTH;
@@ -43,8 +44,10 @@ extern void update_input(void);
 static retro_video_refresh_t video_cb;
 static retro_audio_sample_t audio_cb;
 static retro_audio_sample_batch_t audio_batch_cb;
-static retro_environment_t environ_cb;
+retro_environment_t environ_cb; // used in sources/src/caps/caps.c
 
+/* uae configuarion state
+ */
 extern struct uae_prefs currprefs;
 
 /* Callbacks for RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE.
@@ -64,9 +67,19 @@ int rimageidx = 0;
 bool rejectstate = true;
 
 #define RETRO_MAX_IMAGES 10
-#define RETRO_LINE_LENGTH 255
 char retro_image[RETRO_MAX_IMAGES][RETRO_LINE_LENGTH+1];
 char retro_uae_file[RETRO_LINE_LENGTH+1];
+
+/*
+ * This directory can be used to store system specific 
+ * content such as BIOSes, configuration data, etc.
+ * The returned value can be NULL.
+ * If so, no such directory is defined,
+ * and it's up to the implementation to find a suitable directory.
+ */
+char rkickdir[RETRO_LINE_LENGTH+1]; // where the kickstart roms are: retro_system_dir/kickstart
+char rcapsdir[RETRO_LINE_LENGTH+1]; // for capsimg.so: retro_system_dir
+
 
 bool retro_set_eject_state(bool ejected) {
     fprintf(stderr, "=============\n");
@@ -335,12 +348,21 @@ static void update_variables(void)
    }
 }
 
+#ifdef DEBUG
 #define mystr(s) #s
 #define INIT_MSSG_1(x,y) {      fprintf(stderr, "%25s  %s\n", x, y);                            }
 #define INIT_VOID_0(x)   {x( ); fprintf(stderr, "%25s  %5s\n", mystr(x),        "OK"          );}
 #define INIT_VOID_1(x,y) {x(y); fprintf(stderr, "%25s  %5s\n", mystr(x),        "OK"          );}
 #define INIT_BOOL_0(x)   {      fprintf(stderr, "%25s  %5s\n", mystr(x), x()  ? "OK" : "ERROR");}
 #define INIT_BOOL_1(x,y) {      fprintf(stderr, "%25s  %5s\n", mystr(x), x(y) ? "OK" : "ERROR");}
+#else
+#define INIT_MSSG_1(x,y) {}
+#define INIT_VOID_0(x)   {x();}
+#define INIT_VOID_1(x,y) {x(y);}
+#define INIT_BOOL_0(x)   {x();}
+#define INIT_BOOL_1(x,y) {x(y);}
+#endif
+
 void my_main()
 {
     INIT_VOID_0(keyboard_settrans);
@@ -363,6 +385,12 @@ void my_main()
 
     // load cfg file, if present
     if (retro_uae_file[0]) {
+#ifdef RETRO
+    // indicate that the settings are not controlled by libretro
+    rmsg.frames = 60 * 3;
+    rmsg.msg = "Using config from file";
+    environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &rmsg);
+#endif // RETRO
         target_cfgfile_load (&currprefs, retro_uae_file, 0, 1);
     }
 
@@ -438,7 +466,14 @@ void retro_init(void)
       emuThread = co_create(65536 * sizeof(void*), retro_wrap_emulator);
    }
 
-   check_roms();
+   char *c;
+   environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &c);
+   strcpy(rkickdir, c);
+   strcat(rkickdir, "/kickstart");
+   check_roms(rkickdir);
+
+   strcpy(rcapsdir, c);
+   strcat(rcapsdir, "/capsimg.so");
 }
 
 void retro_deinit(void)
@@ -584,10 +619,12 @@ bool retro_load_game(const struct retro_game_info *info)
     }
     else if (strncasecmp(suffix, "zip", 3) == 0)
     {
+        fprintf(stderr, "Extracting %s\n", info->path);
         stripped_miniunz(info->path);
     }
     else
     {
+        fprintf(stderr, "Adding disk image %s\n", info->path);
         return retro_add_and_replace_image(info);
     }
 

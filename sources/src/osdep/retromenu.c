@@ -29,6 +29,7 @@
 #include "zfile.h"
 #include "gensound.h"
 
+#include "libretro.h"
 #include "libretro-glue.h"
 extern unsigned short int bmp[TEX_WIDTH * TEX_HEIGHT];
 

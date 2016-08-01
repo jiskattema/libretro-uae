@@ -12,9 +12,11 @@
 #include "rommgr.h"
 #include <dirent.h>
 
+#include "libretro-glue.h"
+
 #define MYBUFSIZ (524288 * 2)
 
-int check_roms(int argc, char **argv)
+void check_roms(char *path)
 {
     DIR* FD;
     struct dirent* in_file;
@@ -25,7 +27,11 @@ int check_roms(int argc, char **argv)
     uae_u32 crc;
     struct romdata *rd;
 
-    FD = opendir ("/data/hdd/bios");
+    FD = opendir (path);
+    if(! FD) 
+    {
+        fprintf(stderr, "Cannot read kickstart dir '%s', check RETRO_SYSTEM_DIR\n", path);
+    }
 
     while ((in_file = readdir(FD))) 
     {
@@ -38,12 +44,13 @@ int check_roms(int argc, char **argv)
 //            continue;
 
         /* Open directory entry file for common operation */
-        strcpy(fullname, "/data/hdd/bios/");
+        strcpy(fullname, path);
+        strcat(fullname, "/");
         strcat(fullname, in_file->d_name);
         entry_file = fopen(fullname, "r");
         if (entry_file == NULL)
         {
-            fprintf(stderr, "Error : Failed to open entry file %s\n", in_file->d_name);
+            fprintf(stderr, "Error : Failed to open entry file %s\n", fullname);
         }
         else
         {
@@ -62,12 +69,12 @@ int check_roms(int argc, char **argv)
             rd = getromdatabycrc(crc);
             if(rd)
             { 
-                fprintf(stderr, "[OK] Identified rom   '%s' as '%s'\n", in_file->d_name, rd->name);
+                // fprintf(stderr, "[OK] Identified rom   '%s' as '%s'\n", in_file->d_name, rd->name);
                 romlist_add (fullname, rd);
             }
             else
             {
-                fprintf(stderr, "[..] Unidentified rom '%s'\n", in_file->d_name);
+                // fprintf(stderr, "[..] Unidentified rom '%s'\n", in_file->d_name);
             }
 
             /* When you finish with the file, close it */

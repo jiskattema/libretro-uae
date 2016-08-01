@@ -18,7 +18,9 @@
 
 #include "inputdevice.h"
 
+#include "libretro.h"
 #include "libretro-glue.h"
+
 #include "audio.h"
 #include "drawing.h"
 

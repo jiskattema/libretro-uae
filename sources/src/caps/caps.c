@@ -22,12 +22,21 @@ static int caps_locked[4];
 static int caps_flags = DI_LOCK_DENVAR|DI_LOCK_DENNOISE|DI_LOCK_NOISE|DI_LOCK_UPDATEFD|DI_LOCK_TYPE;
 #define LIB_TYPE 1
 
+#ifdef RETRO
+#include "libretro.h"
+#include "libretro-glue.h"
+#endif // RETRO
 
 #if defined HAVE_DLOPEN && !defined HAVE_FRAMEWORK_CAPSIMAGE
 
 #include <dlfcn.h>
 
+#ifdef RETRO
+#include "libretro-glue.h"
+#define CAPSLIB_NAME    rcapsdir
+#else // RETRO
 #define CAPSLIB_NAME    "libcapsimage.so.2"
+#endif // RETRO
 
 /*
  * Repository for function pointers to the CAPSLib routines
@@ -76,10 +85,18 @@ static int load_capslib (void)
 	capslib.CAPSGetPlatformName = dlsym (capslib.handle, "CAPSGetPlatformName"); if (dlerror () != 0) return 0;
 	capslib.CAPSGetVersionInfo  = dlsym (capslib.handle, "CAPSGetVersionInfo");  if (dlerror () != 0) return 0;
 	if (capslib.CAPSInit() == imgeOk)
-	    return 1;
+		fprintf(stderr, "Opened %s.\n", CAPSLIB_NAME);
+		return 1;
     }
-    write_log ("Unable to open " CAPSLIB_NAME "\n.");
-    return 0;
+#ifdef RETRO
+    const char *notfound = "Cannot find capsimg.so";
+	rmsg.frames = 60 * 3;
+	rmsg.msg = notfound;
+	environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &rmsg);
+#else
+	fprintf(stderr, "Unable to open %s.\n", CAPSLIB_NAME);
+#endif // RETRO
+	return 0;
 }
 
 /*

@@ -29,10 +29,16 @@ extern int CROP_WIDTH;
 extern int CROP_HEIGHT;
 extern int VIRTUAL_WIDTH ;
 
+#define RETRO_LINE_LENGTH 255
+extern struct retro_message rmsg;
+extern retro_environment_t environ_cb; // used in sources/src/caps/caps.c
+extern char rcapsdir[RETRO_LINE_LENGTH+1]; // for capsimg.so: retro_system_dir
 extern int rqsmode;
 extern int rconfig;
 extern int rcompat;
 extern int rres;
+
+extern void check_roms(char *path);
 
 #define NPLGN 10
 #define NLIGN 5
