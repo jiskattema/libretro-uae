@@ -107,66 +107,6 @@ void getgfxoffset (int *dxp, int *dyp, int *mxp, int *myp)
 	*myp = 0;
 }
 
-int vsync_switchmode (int hz)
-{
-#ifndef RETRO
-    static struct PicassoResolution *oldmode;
-    static int oldhz;
-	int w = currentmode->native_width;
-	int h = currentmode->native_height;
-	int d = currentmode->native_depth / 8;
-        struct MultiDisplay *md = getdisplay (&currprefs);
-	struct PicassoResolution *found;
-	int newh, i, cnt;
-
-    newh = h * (currprefs.ntscmode ? 60 : 50) / hz;
-
-	found = NULL;
-    for (cnt = 0; cnt <= abs (newh - h) + 1 && !found; cnt++) {
-            for (i = 0; md->DisplayModes[i].depth >= 0 && !found; i++) {
-                    struct PicassoResolution *r = &md->DisplayModes[i];
-                    if ( (r->res.width == (uae_u32)w)
-					  && ( (r->res.height == (uae_u32)(newh + cnt))
-						|| (r->res.height == (uae_u32)(newh - cnt)) )
-					  && (r->depth == d) ) {
-                            int j = 0;
-                            for ( ; r->refresh[j] > 0; j++) {
-                                    if (r->refresh[j] == hz || r->refresh[j] == hz * 2) {
-                                            found = r;
-                                            hz = r->refresh[j];
-                                            break;
-                                    }
-                            }
-                    }
-            }
-    }
-    if (found == oldmode && hz == oldhz)
-            return true;
-    oldmode = found;
-    oldhz = hz;
-    if (!found) {
-            changed_prefs.gfx_apmode[0].gfx_vsync = 0;
-            if (currprefs.gfx_apmode[0].gfx_vsync != changed_prefs.gfx_apmode[0].gfx_vsync) {
-                    config_changed = 1;
-            }
-            write_log (_T("refresh rate changed to %d but no matching screenmode found, vsync disabled\n"), hz);
-            return false;
-    } else {
-            newh = found->res.height;
-            changed_prefs.gfx_size_fs.height = newh;
-            changed_prefs.gfx_apmode[0].gfx_refreshrate = hz;
-            if (changed_prefs.gfx_size_fs.height != currprefs.gfx_size_fs.height ||
-                    changed_prefs.gfx_apmode[0].gfx_refreshrate != currprefs.gfx_apmode[0].gfx_refreshrate) {
-                    write_log (_T("refresh rate changed to %d, new screenmode %dx%d\n"), hz, w, newh);
-                    config_changed = 1;
-            }
-            return true;
-    } 
-#else
-return false;
-#endif
-}
-
 //win32.cpp
 int extraframewait = 5;
 
@@ -737,6 +677,8 @@ const TCHAR *target_get_display_name (int num, bool friendlyname){return NULL;}
 int target_get_display (const TCHAR *name){return -1;}
 int target_checkcapslock (int scancode, int *state){return 0;}
 void setmaintitle(){}
+static int resolution_compare (const void *a, const void *b) {return 0;}
+int vsync_switchmode (int hz) {return false;}
 #endif
 
 #if defined PICASSO96
@@ -839,9 +781,66 @@ static int GetSystemMetrics (int nIndex) {
 	return 0;
 }
 #endif
+
+#ifndef RETRO
+int vsync_switchmode (int hz)
+{
+    static struct PicassoResolution *oldmode;
+    static int oldhz;
+	int w = currentmode->native_width;
+	int h = currentmode->native_height;
+	int d = currentmode->native_depth / 8;
+        struct MultiDisplay *md = getdisplay (&currprefs);
+	struct PicassoResolution *found;
+	int newh, i, cnt;
+
+    newh = h * (currprefs.ntscmode ? 60 : 50) / hz;
+
+	found = NULL;
+    for (cnt = 0; cnt <= abs (newh - h) + 1 && !found; cnt++) {
+            for (i = 0; md->DisplayModes[i].depth >= 0 && !found; i++) {
+                    struct PicassoResolution *r = &md->DisplayModes[i];
+                    if ( (r->res.width == (uae_u32)w)
+					  && ( (r->res.height == (uae_u32)(newh + cnt))
+						|| (r->res.height == (uae_u32)(newh - cnt)) )
+					  && (r->depth == d) ) {
+                            int j = 0;
+                            for ( ; r->refresh[j] > 0; j++) {
+                                    if (r->refresh[j] == hz || r->refresh[j] == hz * 2) {
+                                            found = r;
+                                            hz = r->refresh[j];
+                                            break;
+                                    }
+                            }
+                    }
+            }
+    }
+    if (found == oldmode && hz == oldhz)
+            return true;
+    oldmode = found;
+    oldhz = hz;
+    if (!found) {
+            changed_prefs.gfx_apmode[0].gfx_vsync = 0;
+            if (currprefs.gfx_apmode[0].gfx_vsync != changed_prefs.gfx_apmode[0].gfx_vsync) {
+                    config_changed = 1;
+            }
+            write_log (_T("refresh rate changed to %d but no matching screenmode found, vsync disabled\n"), hz);
+            return false;
+    } else {
+            newh = found->res.height;
+            changed_prefs.gfx_size_fs.height = newh;
+            changed_prefs.gfx_apmode[0].gfx_refreshrate = hz;
+            if (changed_prefs.gfx_size_fs.height != currprefs.gfx_size_fs.height ||
+                    changed_prefs.gfx_apmode[0].gfx_refreshrate != currprefs.gfx_apmode[0].gfx_refreshrate) {
+                    write_log (_T("refresh rate changed to %d, new screenmode %dx%d\n"), hz, w, newh);
+                    config_changed = 1;
+            }
+            return true;
+    } 
+}
+
 static int resolution_compare (const void *a, const void *b)
 {
-#ifndef RETRO
 	struct PicassoResolution *ma = (struct PicassoResolution *)a;
 	struct PicassoResolution *mb = (struct PicassoResolution *)b;
 	if (ma->res.width < mb->res.width)
@@ -853,11 +852,7 @@ static int resolution_compare (const void *a, const void *b)
 	if (ma->res.height > mb->res.height)
 		return 1;
 	return ma->depth - mb->depth;
-#else 
-return 0;
-#endif
 }
-#ifndef RETRO
 static void sortmodes (struct MultiDisplay *md)
 {
 	int	i, idx = -1;

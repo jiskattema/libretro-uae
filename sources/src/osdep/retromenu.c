@@ -315,8 +315,7 @@ void  init_main_screen(void) {
 	if (config_name == NULL) {
 		config_name = (char *) malloc(512);
 		if (config_name) {
-//FIXME RETRO
-			sprintf(config_name, "%s\0", get_current_config_name());
+        strcpy(config_name, "FIXME");
 		}
 	}
 	if (kickrom_name == NULL) {

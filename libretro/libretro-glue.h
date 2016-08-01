@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include <libco/libco.h>
+#include "libretro.h"
 
 extern cothread_t mainThread;
 extern cothread_t emuThread;

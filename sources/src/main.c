@@ -64,6 +64,10 @@
 #ifdef USE_SDL
 #include "SDL.h"
 #endif
+#ifdef RETRO
+#include "libretro.h"
+#include "libretro-glue.h"
+#endif
 
 /* internal prototypes */
 uae_u32 uaerand (void);
@@ -776,10 +780,6 @@ static void parse_cmdline (int argc, TCHAR **argv)
 }
 #endif
 
-#ifdef RETRO
-#undef OPTIONS_IN_HOME
-#endif
-
 static void parse_cmdline_and_init_file (int argc, TCHAR **argv)
 {
 
@@ -795,18 +795,6 @@ static void parse_cmdline_and_init_file (int argc, TCHAR **argv)
 		}
 	}
 #endif
-
-#ifdef RETRO
-#ifndef ANDPORT
-_tcscpy (optionsfile, ".");
-_tcscat (optionsfile, _T("/"));
-#else
-_tcscpy (optionsfile, "/mnt/sdcard/euae");
-_tcscat (optionsfile, _T("/"));
-#endif
-#endif
-
-#ifndef DONT_PARSE_CMDLINE
 
 	parse_cmdline_2 (argc, argv);
 
@@ -824,9 +812,6 @@ _tcscat (optionsfile, _T("/"));
 
 	parse_cmdline (argc, argv);
 //	fixup_prefs (&currprefs); //fixup after cmdline
-#else
-	_tcscat (optionsfile, restart_config);
-#endif // DONT_PARSE_CMDLINE
 }
 
 void reset_all_systems (void)
@@ -876,17 +861,6 @@ void reset_all_systems (void)
 	sampler_init ();
 #endif
 }
-
-#ifdef RETRO
-//RETRO FIXME
-const char* get_current_config_name() {
-	if (restart_config[0] == 0) {
-		return optionsfile;
-	} else {
-		return restart_config;
-	}
-}
-#endif
 
 /* Okay, this stuff looks strange, but it is here to encourage people who
 * port UAE to re-use as much of this code as possible. Functions that you
@@ -972,10 +946,6 @@ void do_leave_program (void)
 	machdep_free ();
 }
 
-#ifdef RETRO
-extern int rqsmode, rconfig, rcompat;
-#endif
-
 void start_program (void)
 {
 	gui_display (-1);
@@ -1032,9 +1002,6 @@ static int real_main2 (int argc, TCHAR **argv)
 	config_changed = 1;
 	if (restart_config[0]) {
 		default_prefs (&currprefs, 0);
-#ifdef RETRO
-        built_in_prefs(&currprefs, rqsmode, rconfig, rcompat, 0);
-#endif // RETRO
 		fixup_prefs (&currprefs);
 	}
 
@@ -1182,13 +1149,9 @@ void real_main (int argc, TCHAR **argv)
 #endif
 
 	write_log (_T("Enumerating display devices.. \n"));
-#ifndef RETRO
 	enumeratedisplays ();
-#endif
 	write_log (_T("Sorting devices and modes..\n"));
-#ifndef RETRO
 	sortdisplays ();
-#endif
 //	write_log (_T("Display buffer mode = %d\n"), ddforceram);
 //	enumerate_sound_devices ();
 	write_log (_T("done\n"));
@@ -1213,11 +1176,7 @@ void real_main (int argc, TCHAR **argv)
 }
 
 #ifndef NO_MAIN_IN_MAIN_C
-#ifdef RETRO
-int umain (int argc, TCHAR **argv)
-#else
 int main (int argc, TCHAR **argv)
-#endif
 {
 	real_main (argc, argv);
 	return 0;

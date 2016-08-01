@@ -1,3 +1,4 @@
+#include "libretro.h"
 #include "libretro-glue.h"
 
 #include "vkbd_def.h"

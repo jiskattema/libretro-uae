@@ -2587,11 +2587,11 @@ void disk_insert_force (int num, const TCHAR *name, bool forcedwriteprotect)
 {
 	disk_insert_2 (num, name, 1, forcedwriteprotect);
 }
-#ifdef RETRO
-void DISK_check_change (void)
-#else
+//#ifdef RETRO
+//void DISK_check_change (void)
+//#else
 static void DISK_check_change (void)
-#endif
+//#endif
 {
 	if (currprefs.floppy_speed != changed_prefs.floppy_speed)
 		currprefs.floppy_speed = changed_prefs.floppy_speed;
