@@ -29,6 +29,7 @@ extern int retroh;
 extern int CROP_WIDTH;
 extern int CROP_HEIGHT;
 extern int VIRTUAL_WIDTH ;
+extern unsigned short int retro_bmp[1024*1024];
 
 #define RETRO_LINE_LENGTH 255
 extern struct retro_message rmsg;
@@ -38,8 +39,10 @@ extern int rqsmode;
 extern int rconfig;
 extern int rcompat;
 extern int rres;
+extern int rspeed; // 1 - 6
 
 extern void check_roms(char *path);
+extern void retro_audio_cb(short l, short r);
 
 #define NPLGN 10
 #define NLIGN 5

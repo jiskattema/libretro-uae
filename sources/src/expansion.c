@@ -1197,7 +1197,6 @@ static void expamem_init_z3fastmem2 (void)
 }
 
 #ifdef RETRO
-//RETRO
 uaecptr p96ram_start;
 #endif
 

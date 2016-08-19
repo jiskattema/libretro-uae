@@ -18,7 +18,6 @@ void gui_disk_image_change (int unitnum, const TCHAR *name, bool writeprotected)
 
 int gui_open (void)
 {
-    enter_options();
     return 1;
 }
 

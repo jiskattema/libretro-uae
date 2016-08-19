@@ -67,7 +67,6 @@ int filesys_is_readonly (const char *path)
      * and /etc/mtab, but this'll do for just now).
      */
 #ifdef RETRO
-//RETRO
 # include <sys/statfs.h>
 #endif
 

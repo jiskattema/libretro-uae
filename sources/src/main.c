@@ -64,10 +64,10 @@
 #ifdef USE_SDL
 #include "SDL.h"
 #endif
-#ifdef RETRO
-#include "libretro.h"
-#include "libretro-glue.h"
-#endif
+//#ifdef RETRO
+//#include "libretro.h"
+//#include "libretro-glue.h"
+//#endif
 
 /* internal prototypes */
 uae_u32 uaerand (void);
