@@ -122,6 +122,7 @@ SOURCES_C +=  $(EMU)/caps/caps.c
 SOURCES_C += $(LIBRETRO)/libretro.c \
 				 $(LIBRETRO)/libco/libco.c \
 				 $(LIBRETRO)/libretro-mapper.c \
+				 $(LIBRETRO)/libretro-keymap.c \
 				 $(LIBRETRO)/miniunz.c \
 				 $(LIBRETRO)/unzip.c \
 				 $(LIBRETRO)/retroglue.c \

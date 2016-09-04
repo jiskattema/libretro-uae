@@ -182,6 +182,16 @@ bool retro_add_image_index() {
     return true;
 }
 
+void retro_keypress(bool down, unsigned keycode, uint32_t character, uint16_t mods) {
+    unsigned translated = keyboard_translation[keycode];
+    int pressed = down ? 1 : 0;
+
+    if (translated > -1) {
+        inputdevice_do_keyboard(translated, pressed);
+    }
+    fprintf(stderr, "keypress: down=%i keycode=%i character=%c mods=%i\n", down, keycode, character, mods);
+};
+
 static struct retro_disk_control_callback disk_control_cb = {  
     retro_set_eject_state,
     retro_get_eject_state,
@@ -192,6 +202,10 @@ static struct retro_disk_control_callback disk_control_cb = {
 
     retro_replace_image_index,
     retro_add_image_index
+};
+
+static struct retro_keyboard_callback keyboard_cb = {
+    retro_keypress    
 };
 
 static struct retro_input_descriptor input_descriptors[] = {
@@ -205,7 +219,6 @@ static struct retro_input_descriptor input_descriptors[] = {
     // Terminate
     { 255, 255, 255, 255, NULL }
 };
-
 
 void retro_set_environment(retro_environment_t cb) {
     environ_cb = cb;
@@ -225,6 +238,7 @@ void retro_set_environment(retro_environment_t cb) {
     // cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &no_rom);
     cb(RETRO_ENVIRONMENT_SET_VARIABLES, variables);
     cb(RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE, &disk_control_cb);
+    cb(RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK, &keyboard_cb);
 }
 
 static void update_variables(void) {

@@ -24,7 +24,6 @@
 extern void inputdevice_release_all_keys();
 
 static int prefs_changed = 0;
-static int jflag[5]={0,0,0,0,0};
 
 
 void gui_init (int argc, char **argv) {
@@ -52,90 +51,6 @@ void target_default_options (struct uae_prefs *p, int type) {
   p->gfx_framerate = 1;
   p->gfx_xcenter = 1;
   p->gfx_ycenter = 1;
-}
-
-void retro_joy0(unsigned char joy0) {
-
-    // 0x01,0x02,0x04,0x08,0x80
-    //  UP  DWN  LEFT RGT  BTN0
-    //  0    1     2   3    4
-
-    if (joy0&0x80){
-        if(jflag[4]==0){
-            setjoybuttonstate(0, 0, 1); // joy0, button0, state ON
-            jflag[4]=1;
-        }
-    } else {
-        if(jflag[4]==1){
-            setjoybuttonstate(0, 0, 0); // joy0, button0, state OFF
-            jflag[4]=0;
-        }
-    }
-
-    //  Left
-    if (joy0&0x04){
-        if(jflag[2]==0){
-            setjoystickstate(0, 0, -1, 1);
-            jflag[2]=1;
-        }
-    } else {
-        if (jflag[2]==1){
-            setjoystickstate(0, 0, 0, 1);
-            jflag[2]=0;
-        }
-    }
-
-    // Down
-    if (joy0&0x02) {
-        if(jflag[1]==0) {
-            setjoystickstate(0, 1, 1, 1);
-            jflag[1]=1;
-        }
-    } else {
-        if(jflag[1]==1) {
-            setjoystickstate(0, 1, 0, 1);
-            jflag[1]=0;
-        }
-    }
-
-    // Right
-    if (joy0&0x08) {
-        if(jflag[3]==0) {
-            setjoystickstate(0, 0, 1, 1);
-            jflag[3]=1;
-        }
-    } else {
-        if(jflag[3]==1) {
-            setjoystickstate(0, 0, 0, 1);
-            jflag[3]=0;
-        }
-    }
-
-    //UP
-    if (joy0&0x01) {
-        if(jflag[0]==0) {
-
-            setjoystickstate(0, 1, -1, 1);
-            jflag[0]=1;
-        }
-    } else {
-        if(jflag[0]==1) {
-            setjoystickstate(0, 1, 0, 1);
-            jflag[0]=0;
-        }
-    }
-
-
-}
-
-/* --- keyboard input --- */
-
-void retro_key_down(int key) {
-    inputdevice_do_keyboard (key, 1);
-}
-
-void retro_key_up(int key) {
-    inputdevice_do_keyboard (key, 0);
 }
 
 int retro_renderSound(short* samples, int sampleCount) {

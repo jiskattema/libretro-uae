@@ -44,6 +44,8 @@ extern int rspeed; // 1 - 6
 extern void check_roms(char *path);
 extern void retro_audio_cb(short l, short r);
 
+extern const int keyboard_translation[512];
+
 #define NPLGN 10
 #define NLIGN 5
 #define NLETT 5
