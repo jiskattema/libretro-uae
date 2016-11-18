@@ -128,5 +128,3 @@ SOURCES_C += $(LIBRETRO)/libretro.c \
 				 $(LIBRETRO)/retroglue.c \
 				 $(LIBRETRO)/ioapi.c \
 				 $(LIBRETRO)/check_roms.c
-
-

@@ -2,6 +2,7 @@
   libco
   auto-selection module
   license: public domain
+  TODO: add architectures: psp2.c ucontext.c
 */
 
 #if defined(__GNUC__) && defined(__i386__) || (defined(_MSC_VER) && defined(_M_IX86))
@@ -10,6 +11,8 @@
   #include "amd64.c"
 #elif defined(__GNUC__) && defined(_ARCH_PPC)
   #include "ppc.c"
+#elif defined(__GNUC__) && defined(VITA)
+  #include "scefiber.c"
 #elif defined(__GNUC__) && (defined(__ARM_EABI__) || defined(__arm__))
   #include "armeabi.c"
 #elif defined(__GNUC__)
@@ -19,3 +22,5 @@
 #else
   #error "libco: unsupported processor, compiler or operating system"
 #endif
+
+
