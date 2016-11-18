@@ -14,15 +14,14 @@ cothread_t mainThread;
 cothread_t emuThread;
 
 struct retro_message rmsg; // used in sources/src/caps/caps.c
-int retrow=380; 
-int retroh=256;
-int CROP_WIDTH;
-int CROP_HEIGHT;
+int retrow=320; 
+int retroh=400;
 char key_state[512];
 char key_state2[512];
 bool opt_analog=false;
 
-unsigned short int retro_bmp[1024*1024];
+unsigned short int retro_bmp[MAX_WIDTH * MAX_HEIGHT];
+struct retro_game_geometry game_geom   = { 320 << 0, 400, MAX_WIDTH, MAX_HEIGHT, 0 };
 
 int ledtype;
 int rqsmode;
@@ -306,6 +305,13 @@ static void update_variables(void) {
 
         retrow = 320 << rres;
         retroh = 400;
+
+        // communicate resolution change to frontend
+        game_geom.base_width = retrow;
+        game_geom.base_height = retroh;
+        environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &game_geom);
+        fprintf(stderr, "Setting game_geom to %i x %i\n", retrow, retroh);
+
         graphics_init();
     }
 
@@ -416,9 +422,6 @@ void retro_init(void) {
 
     update_variables();
 
-    CROP_WIDTH    = retrow;
-    CROP_HEIGHT   = (retroh - 80);
-
     if(!emuThread && !mainThread) {
         mainThread = co_active();
         emuThread = co_create(65536 * sizeof(void*), retro_wrap_emulator);
@@ -459,10 +462,9 @@ void retro_get_system_info(struct retro_system_info *info) {
 }
 
 void retro_get_system_av_info(struct retro_system_av_info *info) {
-    struct retro_game_geometry geom   = { 640,480,1024,1024,4.0 / 3.0 };
     struct retro_system_timing timing = { 50.0, 44100.0 };
 
-    info->geometry = geom;
+    info->geometry = game_geom;
     info->timing   = timing;
 }
 
@@ -585,6 +587,11 @@ size_t retro_serialize_size(void) {
 }
 
 bool retro_serialize(void *data_, size_t size) {
+    // dont try to serialize if we are not ready for it yet
+    if (firstpass) {
+      return false;
+    }
+
     // have UAE write to file
     save_state (fname, "e-uae");
 

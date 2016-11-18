@@ -68,8 +68,11 @@ Recommended settings and information for Raspberry Pi 2:
 	- overall the core performs very well with adf files
 
 Knows Bugs:
-	- When load savesate , exiting GUI without reset . You have to re-enter GUI and do the reset .
-	- Everything not working well, It's a debug release , so expect to more bug.
-
+	- Rewind is slow, use a high frameskip count
+	- Rewind can crash a game, or prevent it from loading. 
+    When that hapens, start with Rewind disabled, and turn it on during the game.
+	- Display during rewind is wrong
+	- Keyboard overlay not implemented yet
+	- Only one joystick/mouse
 
 We plan to use the core of winuae in the future, but no release date for now.

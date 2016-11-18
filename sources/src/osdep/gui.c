@@ -11,7 +11,6 @@
 
 #include "options.h"
 #include "gui.h"
-#include "retroglue.h"
 
 
 void gui_disk_image_change (int unitnum, const TCHAR *name, bool writeprotected) {}

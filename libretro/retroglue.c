@@ -69,7 +69,6 @@ void retro_flush_screen (struct vidbuf_description *gfxinfo, int ystart, int yen
     co_switch(mainThread);
 }
 
-
 void retro_flush_block (struct vidbuf_description *gfxinfo, int ystart, int yend) {
 }
 
@@ -78,7 +77,6 @@ void retro_flush_line (struct vidbuf_description *gfxinfo, int y) {
 
 void retro_flush_clear_screen(struct vidbuf_description *gfxinfo) {
 }
-
 
 int retro_lockscr(struct vidbuf_description *gfxinfo) {
    return 1;

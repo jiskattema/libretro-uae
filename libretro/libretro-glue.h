@@ -20,16 +20,12 @@ extern cothread_t emuThread;
 #include <stdbool.h>
 
 #define LOGI printf
-
-#define TEX_WIDTH 400
-#define TEX_HEIGHT 300
+#define MAX_WIDTH (320 << 2)
+#define MAX_HEIGHT 400
 
 extern int retrow; 
 extern int retroh;
-extern int CROP_WIDTH;
-extern int CROP_HEIGHT;
-extern int VIRTUAL_WIDTH ;
-extern unsigned short int retro_bmp[1024*1024];
+extern unsigned short int retro_bmp[MAX_WIDTH * MAX_HEIGHT];
 
 #define RETRO_LINE_LENGTH 255
 extern struct retro_message rmsg;
@@ -38,29 +34,12 @@ extern char rcapsdir[RETRO_LINE_LENGTH+1]; // for capsimg.so: retro_system_dir
 extern int rqsmode;
 extern int rconfig;
 extern int rcompat;
-extern int rres;
+extern int rres; // 0 - 2
 extern int rspeed; // 1 - 6
 
 extern void check_roms(char *path);
 extern void retro_audio_cb(short l, short r);
 
 extern const int keyboard_translation[512];
-
-#define NPLGN 10
-#define NLIGN 5
-#define NLETT 5
-
-#define XSIDE  (CROP_WIDTH/NPLGN -1)
-#define YSIDE  (CROP_HEIGHT/8 -1)
-
-#define YBASE0 (CROP_HEIGHT - NLIGN*YSIDE -8)
-#define XBASE0 0+4+2
-#define XBASE3 0
-#define YBASE3 YBASE0 -4
-
-#define STAT_DECX 120
-#define STAT_YSZ  20
-
-#define RGB565(r, g, b)  (((r) << (5+6)) | ((g) << 6) | (b))
 
 #endif
