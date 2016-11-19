@@ -409,10 +409,11 @@ struct inputdevice_functions inputdevicefunc_keyboard = {
 };
 
 int getcapslockstate (void) {
-    return 0;
+  return retro_capslock;
 }
 
 void setcapslockstate (int state) {
+  retro_capslock = state;
 }
 
 /********************************************************************

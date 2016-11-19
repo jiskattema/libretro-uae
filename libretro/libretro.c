@@ -2,6 +2,8 @@
 #include "libretro.h"
 #include "libretro-glue.h"
 
+#include "keyboard.h"
+
 // for struct uae_prefs (options.h) and serialization (savestate.h)
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -182,13 +184,35 @@ bool retro_add_image_index() {
 }
 
 void retro_keypress(bool down, unsigned keycode, uint32_t character, uint16_t mods) {
-    unsigned translated = keyboard_translation[keycode];
-    int pressed = down ? 1 : 0;
+    int translated;
 
-    if (translated > -1) {
-        inputdevice_do_keyboard(translated, pressed);
+    // real keyboard only sends proper events on key down, and empty up events
+    // onscreen keyboard sends proper up and down events
+    // we're using the inputdevice_do_keyboard function, see inputdevice.c:2660
+
+    if (character) {
+      fprintf(stderr, "Character input not implemented yet\n");
+    } else if (keycode) {
+       translated = keyboard_translation[keycode];
+
+       // simulate capslock by holding right shift
+       if (translated == AK_CAPSLOCK) {
+         if (down) {
+           fprintf(stderr, "Capslock pressed, is %i\n", retro_capslock);
+         } else {
+           retro_capslock = retro_capslock ? 0 : 1;
+           fprintf(stderr, "Capslock released, set to %i\n", retro_capslock);
+         }
+         inputdevice_do_keyboard (AK_RSH, retro_capslock);
+       } else {
+         if (down) {
+           inputdevice_do_keyboard (translated, 1);
+         } else {
+           inputdevice_do_keyboard (translated, 0);
+         }
+         // fprintf(stderr, "down=%i keycode=%u character=%d (%c) mods=%i trans=%x\n", down, keycode, character, character, mods,translated);
+       }
     }
-    fprintf(stderr, "keypress: down=%i keycode=%i character=%c mods=%i\n", down, keycode, character, mods);
 };
 
 static struct retro_disk_control_callback disk_control_cb = {  

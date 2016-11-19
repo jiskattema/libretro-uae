@@ -72,7 +72,5 @@ Knows Bugs:
 	- Rewind can crash a game, or prevent it from loading. 
     When that hapens, start with Rewind disabled, and turn it on during the game.
 	- Display during rewind is wrong
-	- Keyboard overlay not implemented yet
+	- Keyboard input a bit hackish, but inputting most ASCII characters works.
 	- Only one joystick/mouse
-
-We plan to use the core of winuae in the future, but no release date for now.

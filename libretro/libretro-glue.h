@@ -40,6 +40,7 @@ extern int rspeed; // 1 - 6
 extern void check_roms(char *path);
 extern void retro_audio_cb(short l, short r);
 
+extern bool retro_capslock;
 extern const int keyboard_translation[512];
 
 #endif
