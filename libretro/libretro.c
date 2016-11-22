@@ -10,7 +10,8 @@
 #include "options.h"
 #include "savestate.h"
 
-const char *fname = "/dev/shm/puae.asf";
+const char *fname_serialize = "/dev/shm/puae_save.asf";
+const char *fname_unserialize = "/dev/shm/puae_restore.asf";
 
 cothread_t mainThread;
 cothread_t emuThread;
@@ -198,10 +199,10 @@ void retro_keypress(bool down, unsigned keycode, uint32_t character, uint16_t mo
        // simulate capslock by holding right shift
        if (translated == AK_CAPSLOCK) {
          if (down) {
-           fprintf(stderr, "Capslock pressed, is %i\n", retro_capslock);
+           // fprintf(stderr, "Capslock pressed, is %i\n", retro_capslock);
          } else {
            retro_capslock = retro_capslock ? 0 : 1;
-           fprintf(stderr, "Capslock released, set to %i\n", retro_capslock);
+           // fprintf(stderr, "Capslock released, set to %i\n", retro_capslock);
          }
          inputdevice_do_keyboard (AK_RSH, retro_capslock);
        } else {
@@ -334,7 +335,7 @@ static void update_variables(void) {
         game_geom.base_width = retrow;
         game_geom.base_height = retroh;
         environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &game_geom);
-        fprintf(stderr, "Setting game_geom to %i x %i\n", retrow, retroh);
+        // fprintf(stderr, "Setting game_geom to %i x %i\n", retrow, retroh);
 
         graphics_init();
     }
@@ -539,8 +540,12 @@ void retro_run(void)
 
 sortie:
 
-    video_cb(retro_bmp, retrow, retroh, retrow * 2); // 2 bytes per pixel
+    // Switch to the emulator thread.
+    // That will run, and at some point make a call to flush_screen()
+    // Our flush screen implementation will just witch back to this thread
     co_switch(emuThread);
+
+    video_cb(retro_bmp, retrow, retroh, retrow * 2); // 2 bytes per pixel
 }
 
 bool retro_add_and_replace_image(const struct retro_game_info *info) {
@@ -605,44 +610,79 @@ size_t retro_serialize_size(void) {
     size += currprefs.chipmem_size;
 
     // add some extra for other state
-    size += 0x100000; // FIME Way too much
+    size += 0x200000; // FIME Way too much
 
     return size;
 }
 
 bool retro_serialize(void *data_, size_t size) {
+    size_t actual_size, bytes_read;
+
     // dont try to serialize if we are not ready for it yet
     if (firstpass) {
       return false;
     }
 
     // have UAE write to file
-    save_state (fname, "e-uae");
+    save_state (fname_serialize, "e-uae");
 
-    // copy file to memoory for libretro
-    FILE *fp = fopen(fname, "rb");
-    if (fp != NULL) {
-        fread(data_, sizeof(char), size, fp);
-        fclose(fp);
-        return true;
+    // copy file to memmory for libretro
+    FILE *fp = fopen(fname_serialize, "rb");
+    
+    if (!fp) {
+      fprintf(stderr, "Could not open file '%s', aborting\n", fname_serialize);
+      return false;
     }
-    return false; 
+
+    fseek(fp, 0, SEEK_END);
+    actual_size = ftell(fp);
+    rewind(fp);
+
+    if (actual_size > size) {
+      fprintf(stderr, "Save state too big: %li > %li, aborting\n", actual_size, size);
+      fclose(fp);
+      return false;
+    }
+
+    bytes_read = fread(data_, sizeof(char), actual_size, fp);
+    if (bytes_read != actual_size) {
+      fprintf(stderr, "Could not read all bytes, aborting\n");
+      fclose(fp);
+      return false;
+    }
+
+    fclose(fp);
+    return true;
 }
 
 bool retro_unserialize(const void *data_, size_t size) {
+    size_t bytes_written;
+
     // copy to file for UAE
-    FILE *fp = fopen(fname, "wb");
-    if (fp != NULL) {
-        fwrite(data_, sizeof(char), size, fp);
-        fclose(fp);
-        strcpy(savestate_fname,fname);
-        savestate_state = STATE_DORESTORE;
-        return true;
-    } else {
-        fprintf(stderr, "Cannot open temprorary file '%s' for writing state file\n", fname);
+    FILE *fp = fopen(fname_unserialize, "wb");
+    if (!fp) {
+      fprintf(stderr, "Could not open file '%s', aborting\n", fname_unserialize);
+      return false;
     }
 
-    return false;
+    bytes_written = fwrite(data_, sizeof(char), size, fp);
+    fclose(fp);
+
+    if (bytes_written != size) {
+      fprintf(stderr, "Could not write all bytes, aborting\n");
+      return false;
+    }
+
+    // restore from file
+    strcpy(savestate_fname,fname_unserialize);
+    savestate_state = STATE_DORESTORE;
+
+    // wait for restore to finish
+    while (savestate_state != 0) {
+      co_switch(emuThread);
+    }
+
+    return true;
 }
 
 void *retro_get_memory_data(unsigned id) {

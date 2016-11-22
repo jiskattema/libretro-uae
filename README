@@ -69,8 +69,5 @@ Recommended settings and information for Raspberry Pi 2:
 
 Knows Bugs:
 	- Rewind is slow, use a high frameskip count
-	- Rewind can crash a game, or prevent it from loading. 
-    When that hapens, start with Rewind disabled, and turn it on during the game.
-	- Display during rewind is wrong
-	- Keyboard input a bit hackish, but inputting most ASCII characters works.
+	- Keyboard input for capital letters is a bit hackish, but can be done using capslock. Works with querty overlay
 	- Only one joystick/mouse
