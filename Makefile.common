@@ -125,6 +125,6 @@ SOURCES_C += $(LIBRETRO)/libretro.c \
 				 $(LIBRETRO)/libretro-keymap.c \
 				 $(LIBRETRO)/miniunz.c \
 				 $(LIBRETRO)/unzip.c \
-				 $(LIBRETRO)/retroglue.c \
+				 $(LIBRETRO)/libretro-glue.c \
 				 $(LIBRETRO)/ioapi.c \
 				 $(LIBRETRO)/check_roms.c

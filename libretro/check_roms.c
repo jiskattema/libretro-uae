@@ -38,10 +38,10 @@ void check_roms(char *path)
         /* On linux/Unix we don't want current and parent directories
          * If you're on Windows machine remove this two lines
          */
-//        if (!strcmp (in_file->d_name, "."))
-//            continue;
-//        if (!strcmp (in_file->d_name, ".."))
-//            continue;
+        if (!strcmp (in_file->d_name, "."))
+            continue;
+        if (!strcmp (in_file->d_name, ".."))
+            continue;
 
         /* Open directory entry file for common operation */
         strcpy(fullname, path);

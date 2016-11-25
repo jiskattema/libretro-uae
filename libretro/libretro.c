@@ -2,13 +2,20 @@
 #include "libretro.h"
 #include "libretro-glue.h"
 
-#include "keyboard.h"
-
 // for struct uae_prefs (options.h) and serialization (savestate.h)
 #include "sysconfig.h"
 #include "sysdeps.h"
 #include "options.h"
 #include "savestate.h"
+
+/*
+ * External parameters
+ */
+extern struct uae_prefs currprefs; // uae configuarion state
+
+/*
+ * Exported variables, defined in libretro-glue.h
+ */
 
 const char *fname_serialize = "/dev/shm/puae_save.asf";
 const char *fname_unserialize = "/dev/shm/puae_restore.asf";
@@ -16,7 +23,6 @@ const char *fname_unserialize = "/dev/shm/puae_restore.asf";
 cothread_t mainThread;
 cothread_t emuThread;
 
-struct retro_message rmsg; // used in sources/src/caps/caps.c
 int retrow=320; 
 int retroh=400;
 char key_state[512];
@@ -24,7 +30,6 @@ char key_state2[512];
 bool opt_analog=false;
 
 unsigned short int retro_bmp[MAX_WIDTH * MAX_HEIGHT];
-struct retro_game_geometry game_geom   = { 320 << 0, 400, MAX_WIDTH, MAX_HEIGHT, 0 };
 
 int ledtype;
 int rqsmode;
@@ -33,16 +38,38 @@ int rcompat;
 int rres;
 int rspeed;
 
-extern void update_input(void);
-
+/*
+ * Local parameters
+ */
 static retro_video_refresh_t video_cb;
 static retro_audio_sample_t audio_cb;
 static retro_audio_sample_batch_t audio_batch_cb;
-retro_environment_t environ_cb; // used in sources/src/caps/caps.c
+static retro_environment_t environ_cb;
+static struct retro_game_geometry game_geom = { 320 << 0, 400, MAX_WIDTH, MAX_HEIGHT, 0 };
+static struct retro_message rmsg;
 
-/* uae configuarion state
+
+// We normally shortcut the FS-UAE main functions and use a simplified configuration.
+// If you really want to configure everything, you can load a config file that is then
+// parsed by the normal FS-UAE init functions.
+char retro_uae_cfg_file[RETRO_LINE_LENGTH+1];
+
+/*
+ * This directory can be used to store system specific 
+ * content such as BIOSes, configuration data, etc.
+ * The returned value can be NULL.
+ * If so, no such directory is defined,
+ * and it's up to the implementation to find a suitable directory.
  */
-extern struct uae_prefs currprefs;
+char rkickdir[RETRO_LINE_LENGTH+1]; // where the kickstart roms are: retro_system_dir/kickstart
+char rcapsdir[RETRO_LINE_LENGTH+1]; // for capsimg.so: retro_system_dir
+
+
+/*
+ * ========================================
+ *             Disk control
+ * ========================================
+ */
 
 /* Callbacks for RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE.
  * Should be set for implementations which can swap out multiple disk 
@@ -56,56 +83,43 @@ extern struct uae_prefs currprefs;
  * set_image_index(index)   set the disk index
  * set_eject_state(false)   insert the disk again 
  */
-int rnumimages = 0;
-int rimageidx = 0;
-bool rejectstate = true;
-
 #define RETRO_MAX_IMAGES 10
+int retro_numimages = 0;
+int retro_image_idx = 0;
+bool retro_eject_state = true;
 char retro_image[RETRO_MAX_IMAGES][RETRO_LINE_LENGTH+1];
-char retro_uae_file[RETRO_LINE_LENGTH+1];
-
-/*
- * This directory can be used to store system specific 
- * content such as BIOSes, configuration data, etc.
- * The returned value can be NULL.
- * If so, no such directory is defined,
- * and it's up to the implementation to find a suitable directory.
- */
-char rkickdir[RETRO_LINE_LENGTH+1]; // where the kickstart roms are: retro_system_dir/kickstart
-char rcapsdir[RETRO_LINE_LENGTH+1]; // for capsimg.so: retro_system_dir
-
 
 bool retro_set_eject_state(bool ejected) {
     /* If ejected is true, "ejects" the virtual disk tray.
      * When ejected, the disk image index can be set.
      */
     if (ejected) {
-        if (! rejectstate) {
+        if (! retro_eject_state) {
             disk_eject(0);
         }
-        rejectstate = true;
+        retro_eject_state = true;
     } else {
         // add current disk image as DF0: for P-UAE
-        if (rimageidx < rnumimages) {
-            disk_insert (0, retro_image[rimageidx], false);
+        if (retro_image_idx < retro_numimages) {
+            disk_insert (0, retro_image[retro_image_idx], false);
         } else {
             disk_eject(0);
         }
-        rejectstate = false; // disk inserted
+        retro_eject_state = false; // disk inserted
     }
     return true;
 }
 
 bool retro_get_eject_state() {
     /* Gets current eject state. The initial state is 'not ejected'. */
-    return rejectstate;
+    return retro_eject_state;
 }
 
 unsigned retro_get_image_index() {
     /* Gets current disk index. First disk is index 0.
      * If return value is >= get_num_images(), no disk is currently inserted.
      */
-    return rimageidx;
+    return retro_image_idx;
 }
 
 bool retro_set_image_index(unsigned index) {
@@ -113,17 +127,17 @@ bool retro_set_image_index(unsigned index) {
      * The implementation supports setting "no disk" by using an 
      * index >= get_num_images().
      */
-    if (rejectstate == false)
+    if (retro_eject_state == false)
     {
         return false;
     }
-    rimageidx = index;
+    retro_image_idx = index;
     return true;
 }
 
 unsigned retro_get_num_images() {
     /* Gets total number of images which are available to use. */
-    return rnumimages;
+    return retro_numimages;
 }
 
 
@@ -150,18 +164,18 @@ bool retro_replace_image_index(unsigned index, const struct retro_game_info *inf
      * returned 4 before.
      * Index 1 will be removed, and the new index is 3.
      */
-    if (rejectstate == false) {
+    if (retro_eject_state == false) {
         return false;
     }
     if (! info) {
         // remove image, move other images down to fill the gap
         int i;
-        for (i = index; i < rnumimages - 1; i++ ) {
+        for (i = index; i < retro_numimages - 1; i++ ) {
             strcpy(retro_image[i], retro_image[i+1]);
         }
 
         // reduce image count
-        rnumimages--;
+        retro_numimages--;
     } else {
         strncpy(retro_image[index], info->path, RETRO_LINE_LENGTH);
         retro_image[index][RETRO_LINE_LENGTH] = '\0';
@@ -175,46 +189,15 @@ bool retro_add_image_index() {
      * This will increment subsequent return values from get_num_images() by 1.
      * This image index cannot be used until a disk image has been set 
      * with replace_image_index. */
-    if (rnumimages == RETRO_MAX_IMAGES) {
+    if (retro_numimages == RETRO_MAX_IMAGES) {
         fprintf(stderr, "maximum number of images (%d) reached\n", RETRO_MAX_IMAGES);
         return false;
     }
 
-    rnumimages++;
+    retro_numimages++;
     return true;
 }
 
-void retro_keypress(bool down, unsigned keycode, uint32_t character, uint16_t mods) {
-    int translated;
-
-    // real keyboard only sends proper events on key down, and empty up events
-    // onscreen keyboard sends proper up and down events
-    // we're using the inputdevice_do_keyboard function, see inputdevice.c:2660
-
-    if (character) {
-      fprintf(stderr, "Character input not implemented yet\n");
-    } else if (keycode) {
-       translated = keyboard_translation[keycode];
-
-       // simulate capslock by holding right shift
-       if (translated == AK_CAPSLOCK) {
-         if (down) {
-           // fprintf(stderr, "Capslock pressed, is %i\n", retro_capslock);
-         } else {
-           retro_capslock = retro_capslock ? 0 : 1;
-           // fprintf(stderr, "Capslock released, set to %i\n", retro_capslock);
-         }
-         inputdevice_do_keyboard (AK_RSH, retro_capslock);
-       } else {
-         if (down) {
-           inputdevice_do_keyboard (translated, 1);
-         } else {
-           inputdevice_do_keyboard (translated, 0);
-         }
-         // fprintf(stderr, "down=%i keycode=%u character=%d (%c) mods=%i trans=%x\n", down, keycode, character, character, mods,translated);
-       }
-    }
-};
 
 static struct retro_disk_control_callback disk_control_cb = {  
     retro_set_eject_state,
@@ -228,8 +211,14 @@ static struct retro_disk_control_callback disk_control_cb = {
     retro_add_image_index
 };
 
+/*
+ * ========================================
+ *             Input control
+ * ========================================
+ */
+
 static struct retro_keyboard_callback keyboard_cb = {
-    retro_keypress    
+    retro_keypress
 };
 
 static struct retro_input_descriptor input_descriptors[] = {
@@ -243,6 +232,12 @@ static struct retro_input_descriptor input_descriptors[] = {
     // Terminate
     { 255, 255, 255, 255, NULL }
 };
+
+/*
+ * ============================================
+ *        Runtime user controled settings
+ * ============================================
+ */
 
 void retro_set_environment(retro_environment_t cb) {
     environ_cb = cb;
@@ -258,8 +253,8 @@ void retro_set_environment(retro_environment_t cb) {
         { NULL, NULL },
     };
 
-    // bool no_rom = true;
-    // cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &no_rom);
+    bool no_rom = true;
+    cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &no_rom);
     cb(RETRO_ENVIRONMENT_SET_VARIABLES, variables);
     cb(RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE, &disk_control_cb);
     cb(RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK, &keyboard_cb);
@@ -348,6 +343,8 @@ static void update_variables(void) {
     }
 }
 
+
+
 #ifdef DEBUG
 #define mystr(s) #s
 #define INIT_MSSG_1(x,y) {      fprintf(stderr, "%25s  %s\n", x, y);                            }
@@ -372,24 +369,26 @@ void my_main() {
     built_in_prefs(&currprefs, rqsmode, rconfig, rcompat, 1);
     INIT_MSSG_1("Matching romfile", currprefs.romfile);
 
+    show_gui_message(currprefs.romfile);
+
     // insert images, if present
     // The disk image interface only controls drive 0, but put disks in other drives too
     // It probably wont matter if the same disk is in multiple drives
-    if (rnumimages) {
-        if(rnumimages > 0) disk_insert (0, retro_image[0], false);
-        if(rnumimages > 1) disk_insert (1, retro_image[1], false);
-        if(rnumimages > 2) disk_insert (2, retro_image[2], false);
-        if(rnumimages > 3) disk_insert (3, retro_image[3], false);
+    if (retro_numimages) {
+        if(retro_numimages > 0) disk_insert (0, retro_image[0], false);
+        if(retro_numimages > 1) disk_insert (1, retro_image[1], false);
+        if(retro_numimages > 2) disk_insert (2, retro_image[2], false);
+        if(retro_numimages > 3) disk_insert (3, retro_image[3], false);
     }
 
     // load cfg file, if present
-    if (retro_uae_file[0]) {
+    if (retro_uae_cfg_file[0]) {
         // indicate that the settings are not controlled by libretro
         rmsg.frames = 60 * 3;
         rmsg.msg = "Using config from file";
         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &rmsg);
 
-        target_cfgfile_load (&currprefs, retro_uae_file, 0, 1);
+        target_cfgfile_load (&currprefs, retro_uae_cfg_file, 0, 1);
     }
 
     fixup_prefs (&currprefs);
@@ -473,8 +472,8 @@ unsigned retro_api_version(void) {
 }
 
 void retro_set_controller_port_device(unsigned port, unsigned device) {
-    (void)port;
-    (void)device;
+    (void) port;
+    (void) device;
 }
 
 void retro_get_system_info(struct retro_system_info *info) {
@@ -521,7 +520,7 @@ extern unsigned short * sndbuffer;
 extern int sndbufsize;
 signed short rsnd=0;
 
-static firstpass=1;
+static int firstpass=1;
 
 void retro_run(void)
 {
@@ -536,7 +535,7 @@ void retro_run(void)
         firstpass=0;
         goto sortie;
     }
-    update_input();
+    retro_update_input();
 
 sortie:
 
@@ -566,14 +565,14 @@ bool retro_add_and_replace_image(const struct retro_game_info *info) {
 }
 
 bool retro_load_game(const struct retro_game_info *info) {
-    retro_uae_file[0] = '\0';
+    retro_uae_cfg_file[0] = '\0';
     const char *suffix = info->path + strlen(info->path) - 3;
 
     environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_descriptors);
 
     if (strlen(info->path) < 5 || strncasecmp(suffix, "uae", 3) == 0) {
-        strncpy(retro_uae_file, info->path, RETRO_LINE_LENGTH);
-        retro_uae_file[RETRO_LINE_LENGTH] = '\0';
+        strncpy(retro_uae_cfg_file, info->path, RETRO_LINE_LENGTH);
+        retro_uae_cfg_file[RETRO_LINE_LENGTH] = '\0';
     } else if (strncasecmp(suffix, "zip", 3) == 0) {
         // fprintf(stderr, "Extracting %s\n", info->path);
         stripped_miniunz(info->path);
@@ -702,4 +701,10 @@ void retro_cheat_set(unsigned index, bool enabled, const char *code) {
     (void) index;
     (void) enabled;
     (void) code;
+}
+
+void show_gui_message(char* msg) {
+    rmsg.frames = 60 * 3;
+    rmsg.msg = msg;
+    environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &rmsg);
 }

@@ -93,7 +93,7 @@ endif
 endif
 
 ifeq ($(DEBUG), 1)
-   CFLAGS += -O0 -g
+   CFLAGS += -O0 -g -ggdb
 else
    CFLAGS += -O2
 endif

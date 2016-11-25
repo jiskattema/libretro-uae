@@ -1,12 +1,21 @@
 #include "libretro.h"
 #include "libretro-glue.h"
 
+#include "sysconfig.h"
+#include "sysdeps.h"
+
+#include "options.h"
+#include "gui.h"
+#include "xwin.h"
+#include "disk.h"
+#include "keyboard.h"
+
 int MOUSEMODE=-1;
 
-int al[2];//left analog1
-int ar[2];//right analog1
+int al[2]; // left analog1
+int ar[2]; // right analog1
 unsigned char MXjoy0; // joy
-int fmousex,fmousey; // emu mouse
+int fmousex, fmousey; // emu mouse
 
 static int mbt[16]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 static int jflag[5]={0,0,0,0,0};
@@ -26,13 +35,37 @@ void retro_set_input_poll(retro_input_poll_t cb)
    input_poll_cb = cb;
 }
 
-#include "sysconfig.h"
-#include "sysdeps.h"
+void retro_keypress(bool down, unsigned keycode, uint32_t character, uint16_t mods) {
+    int translated;
 
-#include "options.h"
-#include "gui.h"
-#include "xwin.h"
-#include "disk.h"
+    // real keyboard only sends proper events on key down, and empty up events
+    // onscreen keyboard sends proper up and down events
+    // we're using the inputdevice_do_keyboard function, see inputdevice.c:2660
+
+    if (character) {
+      // fprintf(stderr, "Character input not implemented yet\n");
+    } else if (keycode) {
+       translated = keyboard_translation[keycode];
+
+       // simulate capslock by holding right shift
+       if (translated == AK_CAPSLOCK) {
+         if (down) {
+           // fprintf(stderr, "Capslock pressed, is %i\n", retro_capslock);
+         } else {
+           retro_capslock = retro_capslock ? 0 : 1;
+           // fprintf(stderr, "Capslock released, set to %i\n", retro_capslock);
+         }
+         inputdevice_do_keyboard (AK_RSH, retro_capslock);
+       } else {
+         if (down) {
+           inputdevice_do_keyboard (translated, 1);
+         } else {
+           inputdevice_do_keyboard (translated, 0);
+         }
+         // fprintf(stderr, "down=%i keycode=%u character=%d (%c) mods=%i trans=%x\n", down, keycode, character, character, mods,translated);
+       }
+    }
+};
 
 /*
    R   mouse speed(gui/emu)
@@ -42,7 +75,7 @@ void retro_set_input_poll(retro_input_poll_t cb)
    Y   Emu Gui
 */
 
-void update_input(void)
+void retro_update_input(void)
 {
     int i;
 

@@ -85,17 +85,8 @@ static int load_capslib (void)
 	capslib.CAPSGetPlatformName = dlsym (capslib.handle, "CAPSGetPlatformName"); if (dlerror () != 0) return 0;
 	capslib.CAPSGetVersionInfo  = dlsym (capslib.handle, "CAPSGetVersionInfo");  if (dlerror () != 0) return 0;
 	if (capslib.CAPSInit() == imgeOk)
-		fprintf(stderr, "Opened %s.\n", CAPSLIB_NAME);
 		return 1;
-    }
-#ifdef RETRO
-    const char *notfound = "Cannot find capsimg.so";
-	rmsg.frames = 60 * 3;
-	rmsg.msg = notfound;
-	environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &rmsg);
-#else
-	fprintf(stderr, "Unable to open %s.\n", CAPSLIB_NAME);
-#endif // RETRO
+  }
 	return 0;
 }
 

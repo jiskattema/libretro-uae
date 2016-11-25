@@ -4,6 +4,9 @@
 
 *********************************************/
  
+#include <string.h>
+#include <stdlib.h>
+
 #include "sysdeps.h"
 
 #include "options.h"
@@ -24,7 +27,6 @@
 extern void inputdevice_release_all_keys();
 
 static int prefs_changed = 0;
-
 
 void gui_init (int argc, char **argv) {
 }
@@ -53,7 +55,7 @@ void target_default_options (struct uae_prefs *p, int type) {
   p->gfx_ycenter = 1;
 }
 
-int retro_renderSound(short* samples, int sampleCount) {
+int retro_render_sound(short* samples, int sampleCount) {
    int i; 
 
    if (sampleCount < 1)
@@ -130,7 +132,7 @@ int graphics_setup(void) {
 void graphics_leave(void) {
 }
 
-int  gfx_parse_option (struct uae_prefs *p, const char *option, const char *value) {
+int gfx_parse_option (struct uae_prefs *p, const char *option, const char *value) {
     return 0;
 }
 
@@ -177,7 +179,7 @@ static void read_joysticks (void) {
 }
 
 static int get_joystick_num (void) {
-    return 1;
+    return 2;
 }
 
 static int get_joystick_widget_num (int joy) {
@@ -193,13 +195,20 @@ static int get_joystick_widget_first (int joy, int type) {
 }
 
 static TCHAR *get_joystick_friendlyname (int joy) {
-      return "Retro pad 0";
+  switch (joy) {
+    case 0: return "Retro pad 0";
+    case 1: return "Retro pad 1";
+    default: return "Retro pad 2";
+  }
 }
 
 static char *get_joystick_uniquename (int joy) {
-    return "retropad0";
+  switch (joy) {
+    case 0: return "retropad0";
+    case 1: return "retropad1";
+    default: return "retropad2";
+  }
 }
-
 
 struct inputdevice_functions inputdevicefunc_joystick = {
     init_joysticks, 
@@ -270,15 +279,23 @@ static void unacquire_mouse (int num) {
 }
 
 static int get_mouse_num (void) {
-    return 1;
+    return 2;
 }
 
 static TCHAR *get_mouse_friendlyname (int mouse) {
-    return "Default mouse 0";
+  switch (mouse) {
+    case 0: return "Default mouse 0";
+    case 1: return "Default mouse 1";
+    default: return "Default mouse 2";
+  };
 }
 
 static TCHAR *get_mouse_uniquename (int mouse) {
-    return "defaultmouse0";
+  switch (mouse) {
+    case 0: return "defaultmouse0";
+    case 1: return "defaultmouse1";
+    default: return "defaultmouse2";
+  };
 }
 
 static int get_mouse_widget_num (int mouse) {
@@ -286,23 +303,19 @@ static int get_mouse_widget_num (int mouse) {
 }
 
 static int get_mouse_widget_first (int mouse, int type) {
-    switch (type) {
-    case IDEV_WIDGET_BUTTON:
-        return FIRST_BUTTON;
-    case IDEV_WIDGET_AXIS:
-        return FIRST_AXIS;
-    }
-    return -1;
+  switch (type) {
+    case IDEV_WIDGET_BUTTON: return FIRST_BUTTON;
+    case IDEV_WIDGET_AXIS: return FIRST_AXIS;
+  }
+  return -1;
 }
 
 static int get_mouse_widget_type (int mouse, int num, TCHAR *name, uae_u32 *code) {
     if (num >= MAX_AXES && num < MAX_AXES + MAX_BUTTONS) {
-        if (name)
-            sprintf (name, "Button %d", num + 1 + MAX_AXES);
+        if (name) sprintf (name, "Button %d", num + 1 + MAX_AXES);
         return IDEV_WIDGET_BUTTON;
     } else if (num < MAX_AXES) {
-        if (name)
-            sprintf (name, "Axis %d", num + 1);
+        if (name) sprintf (name, "Axis %d", num + 1);
         return IDEV_WIDGET_AXIS;
     }
     return IDEV_WIDGET_NONE;
@@ -427,21 +440,16 @@ int needmousehack(void) {
 void toggle_mousegrab(void) {
 }
 
-/* handle pads in the "options" dialog */
 int handle_options_events() {
     return 0;
 }
 
 bool handle_events() {
- return 0;
+    return 0;
 }
 
 void uae_pause (void) {
 }
 
 void uae_resume (void) {
-}
-
-void show_gui_message(char* msg) {
-    fprintf(stderr, "Gui message: %s\n", msg);
 }
