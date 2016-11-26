@@ -7,6 +7,8 @@ Only tested and developed on Linux; but the original version worked on more arch
 
 # Usage
 
+The best compatibility with games should be to set machine to 'A500', configuration 0, compatability 'exact', disk speed 'normal'.
+
 ## Kickstart (bios)
 
 This libretro core requires a bios, or Kickstart rom, to work.

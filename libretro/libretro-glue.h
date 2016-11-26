@@ -17,11 +17,13 @@ extern unsigned short int retro_bmp[MAX_WIDTH * MAX_HEIGHT];
 
 extern char rcapsdir[RETRO_LINE_LENGTH+1];
 
+extern int retro_prefs_changed;
 extern int rqsmode;
 extern int rconfig;
 extern int rcompat;
 extern int rres;   // 0 - 2
 extern int rspeed; // 1 - 6
+extern int rdiskspeed; // 100 - 200 - 400 - 800 - 0
 
 extern void check_roms(char *path);
 extern void retro_audio_cb(short l, short r);

@@ -37,6 +37,7 @@ int rconfig;
 int rcompat;
 int rres;
 int rspeed;
+int rdiskspeed;
 
 /*
  * Local parameters
@@ -250,6 +251,7 @@ void retro_set_environment(retro_environment_t cb) {
         { "rconfig","Configuration; 0|1|2|3|4|5", },
         { "rcompat","Compatibility; Exact|High|Low|Fast", },
         { "rspeed","Mouse speed; 1|2|3|4|5|6", },
+        { "rdiskspeed","Disk speed; normal|2x|4x|8x|instant", },
         { NULL, NULL },
     };
 
@@ -341,6 +343,19 @@ static void update_variables(void) {
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
         rspeed = atoi (var.value);
     }
+
+    var.key = "rdiskspeed";
+    var.value = NULL;
+
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
+        if      (strcmp(var.value, "normal") == 0)  {rdiskspeed = 100;}
+        else if (strcmp(var.value, "2x") == 0)      {rdiskspeed = 200;}
+        else if (strcmp(var.value, "4x") == 0)      {rdiskspeed = 400;}
+        else if (strcmp(var.value, "8x") == 0)      {rdiskspeed = 800;}
+        else if (strcmp(var.value, "instant") == 0) {rdiskspeed = 0;}
+    }
+    changed_prefs.floppy_speed = rdiskspeed;
+    retro_prefs_changed = 1;
 }
 
 

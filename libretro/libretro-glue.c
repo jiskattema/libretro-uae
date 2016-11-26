@@ -26,7 +26,7 @@
 // defined in sources/src/inputdevice.c, but in any header file
 extern void inputdevice_release_all_keys();
 
-static int prefs_changed = 0;
+int retro_prefs_changed = 0;
 
 void gui_init (int argc, char **argv) {
 }
@@ -40,7 +40,7 @@ int target_parse_option (struct uae_prefs *p, const char *option, const char *va
 
 void target_default_options (struct uae_prefs *p, int type) {
   p->start_gui = 0;
-  p->floppy_speed = 100;
+  p->floppy_speed = rdiskspeed;
   p->leds_on_screen = 1;
 
   p->produce_sound = 3;
@@ -113,7 +113,7 @@ int graphics_init(void) {
     gfxvidinfo.flush_screen = retro_flush_screen;
     gfxvidinfo.flush_line = retro_flush_line;
 
-    prefs_changed = 1;
+    retro_prefs_changed = 1;
     inputdevice_release_all_keys ();
     reset_hotkeys ();
     drawing_init ();
@@ -146,8 +146,8 @@ void toggle_fullscreen(int mode) {
 }
 
 int check_prefs_changed_gfx (void) {
-    if (prefs_changed) {
-        prefs_changed = 0;
+    if (retro_prefs_changed) {
+        retro_prefs_changed = 0;
         return 1;
     }
     return 0;
