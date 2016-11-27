@@ -38,6 +38,10 @@ int rcompat;
 int rres;
 int rspeed;
 int rdiskspeed;
+bool rautofire;
+
+static int firstpass=1;
+
 
 /*
  * Local parameters
@@ -230,6 +234,14 @@ static struct retro_input_descriptor input_descriptors[] = {
     { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Fire" },
     { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Mouse mode toggle" },
     { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R, "Mouse speed" },
+
+    { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "Up" },
+    { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN, "Down" },
+    { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "Left" },
+    { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "Right" },
+    { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Fire" },
+    { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Mouse mode toggle" },
+    { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R, "Mouse speed" },
     // Terminate
     { 255, 255, 255, 255, NULL }
 };
@@ -252,6 +264,7 @@ void retro_set_environment(retro_environment_t cb) {
         { "rcompat","Compatibility; Exact|High|Low|Fast", },
         { "rspeed","Mouse speed; 1|2|3|4|5|6", },
         { "rdiskspeed","Disk speed; normal|2x|4x|8x|instant", },
+        { "rautofire","Autofire; OFF|ON", },
         { NULL, NULL },
     };
 
@@ -353,9 +366,20 @@ static void update_variables(void) {
         else if (strcmp(var.value, "4x") == 0)      {rdiskspeed = 400;}
         else if (strcmp(var.value, "8x") == 0)      {rdiskspeed = 800;}
         else if (strcmp(var.value, "instant") == 0) {rdiskspeed = 0;}
+
+        changed_prefs.floppy_speed = rdiskspeed;
+        retro_prefs_changed = 1;
     }
-    changed_prefs.floppy_speed = rdiskspeed;
-    retro_prefs_changed = 1;
+
+    var.key = "rautofire";
+    var.value = NULL;
+
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
+        if (strcmp(var.value, "OFF") == 0)
+            rautofire = false;
+        if (strcmp(var.value, "ON") == 0)
+            rautofire = true;
+    }
 }
 
 
@@ -534,8 +558,6 @@ void retro_audio_cb( short l, short r) {
 extern unsigned short * sndbuffer;
 extern int sndbufsize;
 signed short rsnd=0;
-
-static int firstpass=1;
 
 void retro_run(void)
 {

@@ -32,16 +32,21 @@ Disks are treated like CD's, so to switch disks:
  * change disk
  * close the tray
 
+## Autofire (buggy)
+
+When autofire option is on, just hold the fire button for rapid firing.
+
 # Added features:
  * Multi disk games via libretro's disk api
+ * Controls for second player 
  * Keyboard support via libretro's keyboard overlay
  * Savestates and rewind
  * Predefined hardware configurations
  * Automatic selection of best kickstart rom
  * IPF disk format support
+ * Autofire
 
 # Knows Bugs:
  * Rewind is slow, use a high frameskip count
  * Keyboard input for capital letters is a bit hackish, but can be done using capslock. Works with querty overlay
- * Only one joystick/mouse
  * Changing display modes needs restart
