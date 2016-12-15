@@ -39,6 +39,8 @@ int rres;
 int rspeed;
 int rdiskspeed;
 bool rautofire;
+bool rusemouse;
+bool rcrossmouse;
 
 static int firstpass=1;
 
@@ -257,14 +259,16 @@ void retro_set_environment(retro_environment_t cb) {
 
     struct retro_variable variables[] = {
         { "analog","Use Analog; OFF|ON", },
+        { "rautofire","Autofire; OFF|ON", },
         { "leds","Leds; Standard|Simplified|None", },
         { "rres","Resolution; Low|High|SuperHigh", },
+        { "rdiskspeed","Disk speed; normal|2x|4x|8x|instant", },
         { "rqsmode","Machine; A500|A500+|A600|A1000|A1200|A3000|A4000|CD32|CDTV|ARCADIA", },
         { "rconfig","Configuration; 0|1|2|3|4|5", },
         { "rcompat","Compatibility; Exact|High|Low|Fast", },
         { "rspeed","Mouse speed; 1|2|3|4|5|6", },
-        { "rdiskspeed","Disk speed; normal|2x|4x|8x|instant", },
-        { "rautofire","Autofire; OFF|ON", },
+        { "rusemouse","Use Mouse; OFF|ON" },
+        { "rcrossmouse","Cross mouse ports; OFF|ON" },
         { NULL, NULL },
     };
 
@@ -286,6 +290,26 @@ static void update_variables(void) {
             opt_analog = false;
         if (strcmp(var.value, "ON") == 0)
             opt_analog = true;
+    }
+
+    var.key = "rusemouse";
+    var.value = NULL;
+
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
+        if (strcmp(var.value, "OFF") == 0)
+            rusemouse = false;
+        if (strcmp(var.value, "ON") == 0)
+            rusemouse = true;
+    }
+
+    var.key = "rcrossmouse";
+    var.value = NULL;
+
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
+        if (strcmp(var.value, "OFF") == 0)
+            rusemouse = false;
+        if (strcmp(var.value, "ON") == 0)
+            rusemouse = true;
     }
 
     var.key = "leds";

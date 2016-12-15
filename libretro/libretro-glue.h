@@ -25,6 +25,8 @@ extern int rres;   // 0 - 2
 extern int rspeed; // 1 - 6
 extern int rdiskspeed; // 100 - 200 - 400 - 800 - 0
 extern bool rautofire;
+extern bool rusemouse;
+extern bool rcrossmouse;
 
 extern void check_roms(char *path);
 extern void retro_audio_cb(short l, short r);

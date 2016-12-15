@@ -226,6 +226,7 @@ struct inputdevice_functions inputdevicefunc_joystick = {
 };
 
 int input_get_default_joystick (struct uae_input_device *uid, int num, int port, int af, int mode, bool gp) {
+  fprintf(stderr, "get_default_joystick: num=%i port=%i af=%i mode=%i gp=%i\n",num,port,af,mode,gp);
   if (port == 1) {
     uid[1].eventid[ID_AXIS_OFFSET + 0][0]   =  INPUTEVENT_JOY1_HORIZ;
     uid[1].eventid[ID_AXIS_OFFSET + 1][0]   =  INPUTEVENT_JOY1_VERT;
@@ -289,9 +290,9 @@ static int get_mouse_num (void) {
 
 static TCHAR *get_mouse_friendlyname (int mouse) {
   switch (mouse) {
-    case 0: return "Default mouse 0";
-    case 1: return "Default mouse 1";
-    default: return "Default mouse 2";
+    case 0: return "Retro mouse 0";
+    case 1: return "Retro mouse 1";
+    default: return "Retro mouse 2";
   };
 }
 
@@ -349,15 +350,28 @@ struct inputdevice_functions inputdevicefunc_mouse = {
 };
 
 int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af, bool gp, bool wheel) {
-    /* Supports only one mouse */
-    uid[0].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE1_HORIZ;
-    uid[0].eventid[ID_AXIS_OFFSET + 1][0]   = INPUTEVENT_MOUSE1_VERT;
-    uid[0].eventid[ID_AXIS_OFFSET + 2][0]   = INPUTEVENT_MOUSE1_WHEEL;
-    uid[0].eventid[ID_BUTTON_OFFSET + 0][0] = INPUTEVENT_JOY1_FIRE_BUTTON;
-    uid[0].eventid[ID_BUTTON_OFFSET + 1][0] = INPUTEVENT_JOY1_2ND_BUTTON;
-    uid[0].eventid[ID_BUTTON_OFFSET + 2][0] = INPUTEVENT_JOY1_3RD_BUTTON;
+  fprintf(stderr, "get_default_mouse: num=%i port=%i af=%i gp=%i wheel=%i\n",num,port,af,gp,wheel);
+  if (port == 1) {
+    uid[0].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE2_HORIZ;
+    uid[0].eventid[ID_AXIS_OFFSET + 1][0]   = INPUTEVENT_MOUSE2_VERT;
+    // uid[0].eventid[ID_AXIS_OFFSET + 2][0]   = INPUTEVENT_MOUSE2_WHEEL;
+    uid[0].eventid[ID_BUTTON_OFFSET + 0][0] = INPUTEVENT_JOY2_FIRE_BUTTON;
+    uid[0].eventid[ID_BUTTON_OFFSET + 1][0] = INPUTEVENT_JOY2_2ND_BUTTON;
+    uid[0].eventid[ID_BUTTON_OFFSET + 2][0] = INPUTEVENT_JOY2_3RD_BUTTON;
     uid[0].enabled = 1;
-    return 0;
+  } 
+
+  if (port == 0) {
+    uid[1].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE1_HORIZ;
+    uid[1].eventid[ID_AXIS_OFFSET + 1][0]   = INPUTEVENT_MOUSE1_VERT;
+    uid[1].eventid[ID_AXIS_OFFSET + 2][0]   = INPUTEVENT_MOUSE1_WHEEL;
+    uid[1].eventid[ID_BUTTON_OFFSET + 0][0] = INPUTEVENT_JOY1_FIRE_BUTTON;
+    uid[1].eventid[ID_BUTTON_OFFSET + 1][0] = INPUTEVENT_JOY1_2ND_BUTTON;
+    uid[1].eventid[ID_BUTTON_OFFSET + 2][0] = INPUTEVENT_JOY1_3RD_BUTTON;
+    uid[1].enabled = 1;
+  }
+
+  return 0;
 }
 
 /***************************************************************
